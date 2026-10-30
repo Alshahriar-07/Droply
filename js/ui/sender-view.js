@@ -10,6 +10,7 @@ import {
   qs,
   toast,
 } from "./common.js";
+import { config } from "../config.js";
 import { formatBytes, formatCountdown, formatFileCount } from "../utils/format-bytes.js";
 import { assertLocalFilesAreSendable, displayCode } from "../utils/validation.js";
 import { describeError } from "../core/errors.js";
@@ -58,7 +59,7 @@ export function mountFileSelection({ files = [], onBack, onCreate }) {
           <p class="dropzone__title">Drop files here</p>
           <p class="dropzone__hint">
             or <span class="dropzone__browse">browse your device</span><br />
-            Any file type · up to 2 GB per file
+            Any file type · up to 5 GB per file, 5 GB per transfer
           </p>
         </div>
 
@@ -75,7 +76,7 @@ export function mountFileSelection({ files = [], onBack, onCreate }) {
           <ul class="file-list" data-file-list></ul>
           <div class="selection-summary">
             <span><strong data-total-size>0 B</strong> · <span data-total-count>0 files</span></span>
-            <span>Ready when you are</span>
+            <span data-remaining></span>
           </div>
         </div>
 
@@ -103,6 +104,7 @@ export function mountFileSelection({ files = [], onBack, onCreate }) {
   const errorText = qs(element, "[data-error-text]");
   const totalSize = qs(element, "[data-total-size]");
   const totalCount = qs(element, "[data-total-count]");
+  const remaining = qs(element, "[data-remaining]");
 
   const fileKey = (file) => `${file.name}|${file.size}|${file.lastModified}`;
 
@@ -151,6 +153,19 @@ export function mountFileSelection({ files = [], onBack, onCreate }) {
     const bytes = selected.reduce((sum, file) => sum + file.size, 0);
     totalSize.textContent = formatBytes(bytes);
     totalCount.textContent = formatFileCount(selected.length);
+    const limit = formatBytes(config.maxTotalBytes, { decimals: 0 });
+    const left = config.maxTotalBytes - bytes;
+    remaining.textContent =
+      left >= 0
+        ? `${remainingLabel(left)} of ${limit} left`
+        : `${formatBytes(-left)} over the ${limit} limit`;
+  }
+
+  /** Rounds gigabytes down so "4.9 GB left" never reads as a full "5 GB". */
+  function remainingLabel(bytes) {
+    const gib = 1024 ** 3;
+    if (bytes < gib) return formatBytes(bytes);
+    return `${(Math.floor((bytes / gib) * 10) / 10).toFixed(1)} GB`;
   }
 
   function addFiles(fileList) {
@@ -166,6 +181,18 @@ export function mountFileSelection({ files = [], onBack, onCreate }) {
     }
     if (!added) {
       if (fileList?.length) toast("Those files are already in the list.");
+      return;
+    }
+    // Reject an oversized selection immediately instead of waiting for the
+    // create button, so the limit is obvious while picking files.
+    const before = selected.slice(0, selected.length - added);
+    try {
+      assertLocalFilesAreSendable(selected);
+    } catch (error) {
+      selected = before;
+      clearError();
+      render();
+      showError(error);
       return;
     }
     clearError();

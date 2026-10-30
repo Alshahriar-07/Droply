@@ -372,7 +372,7 @@ export const ERROR_CATALOG = Object.freeze({
     ref: "DL-FILE-02",
     title: "That file is too large",
     message:
-      "Droply's configured limit is 2 GB per file and 8 GB per transfer. Both devices need enough memory for what they send and receive.",
+      "Droply's configured limit is 5 GB per file and 5 GB for the whole transfer. Both devices need enough memory and disk space for what they send and receive.",
     recovery: ["Split the file, or send fewer files in one transfer."],
     icon: "file-x",
     scope: ERROR_SCOPE.INLINE,

@@ -112,8 +112,9 @@ export const config = Object.freeze({
   roomTtlMs: 10 * 60_000,
   /** Copy shown in the UI about connection limits. */
   maxFiles: 200,
-  maxFileBytes: 2 * 1024 ** 3,
-  maxTotalBytes: 8 * 1024 ** 3,
+  /** 5 GiB (5,368,709,120 bytes) per file and for the whole transfer. */
+  maxFileBytes: 5 * 1024 ** 3,
+  maxTotalBytes: 5 * 1024 ** 3,
 });
 
 /** Absolute URL of an API path on the signaling server. */

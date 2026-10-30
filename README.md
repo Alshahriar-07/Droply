@@ -21,7 +21,7 @@ other. Files are never uploaded to Droply — the signaling service only relays 
 | **Six-character pairing** | Cryptographically random, ambiguity-free codes (`A–H`, `J–N`, `P–Z`, `2–9`). |
 | **QR handoff** | The sender displays a QR code; the receiver scans it in-browser with the camera. |
 | **Multiple files** | Send many files at once, including empty files and files over 1 GB. |
-| **Chunked streaming** | Files are read with `File.slice()` and streamed in 32 KiB chunks, so a 4 GB file never becomes a 4 GB allocation. |
+| **Chunked streaming** | Files are read with `File.slice()` and streamed in 32 KiB chunks, so a 5 GB file never becomes a 5 GB allocation. The receiver folds chunks into Blob blocks every 16 MB instead of holding the file in a JS array. |
 | **Backpressure control** | The sender watches `bufferedAmount` and pauses above the high-water mark. |
 | **Real progress** | Per-file and overall progress, speed and ETA come from bytes that actually crossed the data channel — never from a timer. |
 | **Receiver consent** | The receiver sees file names, sizes and totals and must accept before any file data flows. |
@@ -210,7 +210,8 @@ The Worker is configured in `worker/wrangler.toml`:
 See [`.env.example`](.env.example) for a copy-paste template covering both.
 
 Frontend limits (file count, per-file and total size, chunk size, stall/connect timeouts) live in
-`js/config.js`. The defaults are 200 files, 2 GB per file, 8 GB per transfer, 32 KiB chunks.
+`js/config.js`. The defaults are 200 files, 5 GB (5,368,709,120 bytes) per file and 5 GB for the
+whole transfer, and 32 KiB chunks.
 
 ## Deployment
 
@@ -307,8 +308,10 @@ The complete list — trigger, message, recovery and whether a retry can help �
 - **No TURN relay is configured by default.** Peers on symmetric NAT or restrictive firewalls may not
   be able to connect; Droply reports the failure rather than falling back to an upload.
 - **Both browsers must stay open** for the duration of the transfer. Closing the sender tab cancels it.
-- **Files are held in memory on the receiver** until saved; very large transfers need enough RAM
-  (roughly the total size, plus browser overhead). Saving happens through Blob downloads.
+- **Received files are assembled in Blob blocks on the receiver** (16 MB at a time, so the JS heap
+  stays small), then saved through Blob downloads. The browser's Blob storage must still hold the
+  whole file until the download finishes, which means a real 5 GB transfer needs that much free
+  memory/disk on the receiving device. Transferring 5 GB has not been verified on real devices.
 - **Rooms expire after 10 minutes** while waiting for a receiver (configurable up to 60 minutes).
 - **Six-character codes are short by design.** They are rate-limited and single-use, but a code should
   still be shared privately rather than broadcast.

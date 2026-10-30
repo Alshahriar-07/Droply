@@ -60,7 +60,7 @@ promise the retry will succeed.
 | `transfer/unconfirmed` | DL-XFER-05 | page | Every byte left the sender but no `confirmed` frame arrived within 10 s | yes |
 | `transfer/integrity` | DL-XFER-04 | page | The receiver's byte count does not match the manifest, so completion is refused | yes |
 | `file/read-denied` | DL-FILE-01 | inline | `File.slice()`/`arrayBuffer()` rejects — the file moved, was deleted or is locked | no |
-| `file/too-large` | DL-FILE-02 | inline | A file exceeds 2 GB, or the selection exceeds the 8 GB per-transfer limit | no |
+| `file/too-large` | DL-FILE-02 | inline | A file exceeds 5 GB, or the selection exceeds the 5 GB per-transfer limit | no |
 | `file/none-selected` | DL-FILE-03 | inline | "Create transfer" with an empty selection (also guarded by the disabled button) | no |
 | `download/failed` | DL-FILE-04 | inline | Saving a received file threw — the blob URL expired or the browser refused the download | yes |
 | `camera/denied` | DL-QR-01 | inline | `getUserMedia` rejects with `NotAllowedError`/`SecurityError` | yes |

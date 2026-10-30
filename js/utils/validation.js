@@ -1,6 +1,7 @@
 /** Input validation and sanitising shared by the UI and the transfer engine. */
 
 import { config } from "../config.js";
+import { formatBytes } from "./format-bytes.js";
 
 /** Same alphabet the signaling server issues: no O/0 or I/1. */
 const CODE_PATTERN = /^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$/;
@@ -146,7 +147,7 @@ export function validateManifestFiles(rawFiles) {
     }
     const size = Number(entry.size);
     if (!Number.isFinite(size) || size < 0 || size > config.maxFileBytes) {
-      throw new Error("A file in this transfer is too large for this browser.");
+      throw new Error(`A file in this transfer is larger than the ${formatBytes(config.maxFileBytes, { decimals: 0 })} limit.`);
     }
     const id = String(entry.id ?? index).slice(0, 24);
     if (!/^[a-z0-9-]{1,24}$/i.test(id)) {
@@ -164,7 +165,7 @@ export function validateManifestFiles(rawFiles) {
   });
 
   if (totalBytes > config.maxTotalBytes) {
-    throw new Error("This transfer is larger than the browser can hold in memory.");
+    throw new Error(`This transfer is larger than the ${formatBytes(config.maxTotalBytes, { decimals: 0 })} limit.`);
   }
 
   return { files, totalBytes };
@@ -193,12 +194,16 @@ export function assertLocalFilesAreSendable(files) {
   let total = 0;
   for (const file of files) {
     if (file.size > config.maxFileBytes) {
-      throw new FileValidationError(`"${sanitizeFileName(file.name)}" is larger than the 2 GB limit.`);
+      throw new FileValidationError(
+        `"${sanitizeFileName(file.name)}" is larger than the ${formatBytes(config.maxFileBytes, { decimals: 0 })} per-file limit.`,
+      );
     }
     total += file.size;
   }
   if (total > config.maxTotalBytes) {
-    throw new FileValidationError("The selection is larger than the 8 GB per-transfer limit.");
+    throw new FileValidationError(
+      `The selection is larger than the ${formatBytes(config.maxTotalBytes, { decimals: 0 })} per-transfer limit.`,
+    );
   }
   return total;
 }

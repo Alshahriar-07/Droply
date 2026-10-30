@@ -16,6 +16,14 @@ import {
   parseManifest,
 } from "./transfer-protocol.js";
 import { buildProgressDetail } from "./transfer-stats.js";
+import { formatBytes } from "../utils/format-bytes.js";
+
+/**
+ * Chunks are folded into a Blob once this much is buffered. Blobs are managed
+ * by the browser (and paged to disk when needed), so a multi-GB file never
+ * turns into a multi-GB JS heap allocation.
+ */
+const FLUSH_BYTES = 16 * 1024 * 1024;
 
 export class FileReceiver extends EventTarget {
   /** @param {{ transport: import("./data-channel.js").DataChannelTransport }} options */
@@ -91,11 +99,15 @@ export class FileReceiver extends EventTarget {
       return;
     }
     if (this.receivedBytes + payload.byteLength > config.maxTotalBytes) {
-      this.#fail("This transfer is larger than this browser can hold in memory.");
+      this.#fail(
+        `This transfer is larger than the ${formatBytes(config.maxTotalBytes, { decimals: 0 })} limit.`,
+      );
       return;
     }
 
     entry.parts.push(payload);
+    entry.pendingBytes += payload.byteLength;
+    if (entry.pendingBytes >= FLUSH_BYTES) this.#flushParts(entry);
     entry.transferred = nextSize;
     entry.expectedSeq += 1;
     this.receivedBytes += payload.byteLength;
@@ -112,6 +124,8 @@ export class FileReceiver extends EventTarget {
     this.entries = files.map((file) => ({
       ...file,
       parts: [],
+      blobs: [],
+      pendingBytes: 0,
       transferred: 0,
       expectedSeq: 0,
     }));
@@ -156,13 +170,17 @@ export class FileReceiver extends EventTarget {
       throw new ProtocolError("A file arrived with missing chunks.");
     }
 
-    // Assemble the Blob once; the chunk buffers can then be released.
-    const blob = new Blob(entry.parts, { type: entry.type || "application/octet-stream" });
+    // Fold the tail into a Blob; every earlier block is already a Blob, so the
+    // chunk buffers are released as the file arrives.
+    this.#flushParts(entry);
+    const blob = new Blob(entry.blobs, { type: entry.type || "application/octet-stream" });
+    entry.blobs = [];
     const url = URL.createObjectURL(blob);
     this.objectUrls.push(url);
     entry.blob = blob;
     entry.url = url;
     entry.parts = [];
+    entry.pendingBytes = 0;
 
     this.dispatchEvent(
       new CustomEvent("file-complete", {
@@ -170,6 +188,14 @@ export class FileReceiver extends EventTarget {
       }),
     );
     this.#emit(true);
+  }
+
+  /** Folds buffered chunks into a Blob so they leave the JS heap. */
+  #flushParts(entry) {
+    if (!entry.parts.length) return;
+    entry.blobs.push(new Blob(entry.parts, { type: entry.type || "application/octet-stream" }));
+    entry.parts = [];
+    entry.pendingBytes = 0;
   }
 
   #handleComplete(message) {
