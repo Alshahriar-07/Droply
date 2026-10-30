@@ -22,13 +22,50 @@ const readMeta = (name) => {
 const isLocalHost = () =>
   ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
 
+/** True for a URL that points at this machine (e.g. a local `wrangler dev`). */
+function isLocalEndpoint(url) {
+  try {
+    return ["localhost", "127.0.0.1", "::1"].includes(new URL(url).hostname);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * `?signaling=http://localhost:8787` points a locally served copy of the site
+ * at any Worker without editing the deployed <meta> tag. Only http(s) URLs are
+ * accepted so a stray query string cannot inject another scheme.
+ */
+function readSignalingOverride() {
+  let raw = "";
+  try {
+    raw = new URLSearchParams(window.location.search).get("signaling") ?? "";
+  } catch {
+    return "";
+  }
+  if (!/^https?:\/\//i.test(raw)) return "";
+  return raw.trim().replace(/\/+$/, "");
+}
+
 /** Signaling server used for room creation and WebRTC signaling. */
 function resolveSignalingBaseUrl() {
+  const override = readSignalingOverride();
+  if (override) return override;
+
   const configured = readMeta("droply-signaling");
-  if (configured) return configured.replace(/\/+$/, "");
-  // `wrangler dev` serves the signaling Worker on port 8787 by default.
-  if (isLocalHost()) return `${window.location.protocol}//${window.location.hostname}:8787`;
-  return "";
+
+  // A build served from localhost talks to the local Worker, so `npm run dev`
+  // works without touching the deployed configuration. Any other endpoint can
+  // still be selected with ?signaling=... .
+  if (isLocalHost()) {
+    if (isLocalEndpoint(configured)) return configured.replace(/\/+$/, "");
+    // `wrangler dev` serves the signaling Worker on port 8787 by default.
+    return `${window.location.protocol}//${window.location.hostname}:8787`;
+  }
+
+  // Empty means "same origin", which is what a reverse-proxied deployment
+  // (droply.example.com/api/* -> Worker) uses.
+  return configured ? configured.replace(/\/+$/, "") : "";
 }
 
 /** Builds the ICE server list. STUN is free; TURN is optional and modular. */

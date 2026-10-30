@@ -154,11 +154,13 @@ only validates origins and relays signaling frames.
 ```bash
 cd worker
 npm install
+cp .dev.vars.example .dev.vars   # allows your local frontend origin
 npm run dev          # wrangler dev on http://127.0.0.1:8787
 ```
 
 The Worker needs no credentials for local development — Durable Objects run in the local Miniflare
-runtime.
+runtime. `wrangler.toml` only allows the production origin, so `.dev.vars` (git-ignored) is what lets
+a locally served frontend call the local Worker.
 
 ### 2. Run the frontend
 
@@ -170,7 +172,9 @@ npx serve . -l 3000
 ```
 
 Then open http://localhost:3000. On `localhost`, `js/config.js` automatically points at the
-signaling Worker on port `8787`, so both halves work with no further configuration.
+signaling Worker on port `8787` (the shipped meta tag targets the deployed Worker, and is used for
+every other host), so both halves work with no further configuration. To point a local build at a
+different Worker, add `?signaling=https://your-worker.workers.dev` to the URL.
 
 > Open the site in **two different browsers** (or one normal and one private window) to test a real
 > transfer — two tabs of the same profile share storage but still work; the transfer itself is
@@ -191,7 +195,7 @@ without rebuilding. Edit the `<meta>` tags in `index.html` (or `js/config.js` fo
 
 | Meta tag | Purpose |
 |---|---|
-| `droply-signaling` | Base URL of the signaling Worker. Empty = same origin (`/api/*` reverse proxy). |
+| `droply-signaling` | Base URL of the signaling Worker. Ships with the production Worker; a page served from `localhost` / `127.0.0.1` uses that host's port `8787` instead. Empty = same origin (`/api/*` reverse proxy). |
 | `droply-turn-url` | Comma-separated TURN URLs (optional; `turn:` / `turns:`). |
 | `droply-turn-username` | TURN username. |
 | `droply-turn-credential` | TURN credential. |
@@ -219,11 +223,18 @@ The frontend is static. Import the repository into Vercel and use:
 - **Output directory:** `.` (repository root; `vercel.json` also sets this)
 
 Keep the `api/` directory in the deployment: `api/error.js` is what gives the branded error routes
-real HTTP status codes. Then set the signaling endpoint. Either
+real HTTP status codes.
 
-1. set `<meta name="droply-signaling" content="https://droply-signaling.<subdomain>.workers.dev">` in
-   `index.html`, **or**
-2. reverse-proxy `/api/*` from the same domain to the Worker and leave the tag empty.
+The signaling endpoint is already configured in `index.html`:
+
+```html
+<meta name="droply-signaling" content="https://droply-signaling.alshahriarsayon425.workers.dev" />
+```
+
+For a fork, either change that URL, reverse-proxy `/api/*` from the same domain and leave the tag
+empty, or pass `?signaling=https://your-worker.workers.dev` for a one-off. A deployed build and the
+Worker must agree: the Worker's `ALLOWED_ORIGINS` has to list the site's origin, otherwise every
+request is answered with `403 origin_rejected`.
 
 The official deployment uses https://droply-files.vercel.app.
 

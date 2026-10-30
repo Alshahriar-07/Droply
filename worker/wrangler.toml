@@ -22,7 +22,7 @@ new_sqlite_classes = ["Room", "RateLimiter"]
 [vars]
 # Comma separated list of allowed browser origins. Replace BEFORE deploying.
 # Use "*" only for local development.
-ALLOWED_ORIGINS = "*"
+ALLOWED_ORIGINS = "https://droply-files.vercel.app"
 # Waiting-room lifetime in seconds (clamped 120..3600 by the Worker).
 ROOM_TTL_SECONDS = "600"
 

@@ -57,12 +57,14 @@
     <meta name="twitter:image:alt" content="Droply — direct, encrypted file transfer" />
 
     <!--
-      Signaling endpoint. Leave empty to use the same origin (useful when the
-      Worker is routed on /api/* of the same domain). Set it to your deployed
-      Worker URL, e.g. https://droply-signaling.example.workers.dev
-      See js/config.js for the full list of runtime options.
+      Signaling endpoint (Cloudflare Worker + Durable Object). It only relays
+      room state and WebRTC negotiation; file bytes never reach it.
+      Leave empty to use the same origin (when the Worker is routed on
+      /api/* of this domain). A page served from 127.0.0.1 talks to the local
+      Worker on port 8787 automatically, so local development does not need to
+      edit this tag. See js/config.js for the full list of runtime options.
     -->
-    <meta name="droply-signaling" content="" />
+    <meta name="droply-signaling" content="https://droply-signaling.alshahriarsayon425.workers.dev" />
     <meta name="droply-turn-url" content="" />
     <meta name="droply-turn-username" content="" />
     <meta name="droply-turn-credential" content="" />

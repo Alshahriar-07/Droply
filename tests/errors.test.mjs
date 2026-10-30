@@ -90,7 +90,9 @@ test("signaling error codes map onto catalog entries", () => {
     invalid_code: "code/invalid",
     rate_limited: "signaling/rate-limited",
     network_error: "signaling/unreachable",
-    server_error: "signaling/rejected",
+    // A 5xx is the service failing, not this browser being disallowed: it gets
+    // its own catalog entry so the copy can say "try again" honestly.
+    server_error: "signaling/error",
     bad_request: "signaling/rejected",
     origin_rejected: "signaling/rejected",
     invalid_offer: "signaling/rejected",

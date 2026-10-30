@@ -1,0 +1,7 @@
+# Local development only. Copy to worker/.dev.vars (git-ignored).
+#
+# `wrangler.toml` restricts ALLOWED_ORIGINS to the production site, so a
+# locally served frontend would otherwise be rejected with
+# `403 origin_rejected`. These values override the [vars] block while running
+# `npm run dev`; `wrangler deploy` never reads this file.
+ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://127.0.0.1:4173,http://127.0.0.1:8789
