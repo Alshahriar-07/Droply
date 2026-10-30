@@ -1,0 +1,30 @@
+name = "droply-signaling"
+main = "src/index.js"
+compatibility_date = "2025-03-10"
+workers_dev = true
+
+# Static assets are hosted separately (Cloudflare Pages / any static host).
+# This Worker only handles room creation, joining and WebRTC signaling.
+
+[[durable_objects.bindings]]
+name = "ROOM"
+class_name = "Room"
+
+[[durable_objects.bindings]]
+name = "RATE_LIMITER"
+class_name = "RateLimiter"
+
+# SQLite-backed Durable Objects are available on the Workers free plan.
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Room", "RateLimiter"]
+
+[vars]
+# Comma separated list of allowed browser origins. Replace BEFORE deploying.
+# Use "*" only for local development.
+ALLOWED_ORIGINS = "*"
+# Waiting-room lifetime in seconds (clamped 120..3600 by the Worker).
+ROOM_TTL_SECONDS = "600"
+
+[observability]
+enabled = true

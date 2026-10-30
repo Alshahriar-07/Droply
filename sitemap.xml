@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Droply sitemap. The product is a single page: everything else (transfer
+  rooms, codes, error routes) is private or non-indexable, so it is omitted.
+  lastmod reflects the last real content change of the page.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://droply-files.vercel.app/</loc>
+    <lastmod>2026-10-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>

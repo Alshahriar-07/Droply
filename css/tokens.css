@@ -1,0 +1,131 @@
+/* ==========================================================================
+   Droply — design tokens
+   One source of truth for colour, type, space, radius, elevation and motion.
+   Visual language: precise, editorial utility. White paper, navy ink, hairline
+   rules, and red/blue used as functional signals rather than decoration.
+   ========================================================================== */
+
+:root {
+  /* Brand ---------------------------------------------------------------- */
+  --red: #e32636;
+  --red-strong: #c31c2b;
+  --red-deep: #8f1220;
+  --red-tint: #fdf0f1;
+  --red-line: #f3cdd1;
+
+  --blue: #1267d5;
+  --blue-strong: #0d51ab;
+  --blue-deep: #0a3d80;
+  --blue-tint: #eef4fd;
+  --blue-line: #cddefa;
+
+  --white: #ffffff;
+  --navy: #101827;
+  --gray: #697586;
+
+  /* Surfaces ------------------------------------------------------------- */
+  --paper: #f7f8fa;
+  --paper-2: #f1f3f7;
+  --surface: #ffffff;
+  --surface-sunken: #f4f6f9;
+  --surface-inverse: #0c1322;
+  --border: #e3e7ee;
+  --border-soft: #edf0f5;
+  --border-strong: #cfd6e2;
+
+  /* Ink ------------------------------------------------------------------ */
+  --text: var(--navy);
+  --text-secondary: #46536a;
+  --text-muted: var(--gray);
+  --text-faint: #93a0b1;
+  --text-on-dark: #ffffff;
+  --text-on-dark-muted: #a6b2c4;
+
+  /* Status --------------------------------------------------------------- */
+  --success: #0d8a5f;
+  --success-tint: #e8f6f0;
+  --success-line: #bfe6d6;
+  --warning: #a86a12;
+  --warning-tint: #fdf6e8;
+
+  /* Typography ----------------------------------------------------------- */
+  --font-sans:
+    "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    "Noto Sans", sans-serif;
+  --font-mono:
+    ui-monospace, "SF Mono", "Cascadia Mono", "Segoe UI Mono", "Roboto Mono", Menlo, Consolas,
+    monospace;
+
+  --fs-micro: 0.6875rem; /* 11px — tracked labels */
+  --fs-xs: 0.75rem; /* 12px */
+  --fs-sm: 0.8125rem; /* 13px */
+  --fs-base: 1rem; /* 16px */
+  --fs-md: 1.0625rem; /* 17px — lede */
+  --fs-lg: 1.25rem;
+  --fs-xl: clamp(1.375rem, 1.15rem + 0.9vw, 1.75rem);
+  --fs-2xl: clamp(1.75rem, 1.25rem + 2vw, 2.5rem);
+  --fs-display: clamp(2.625rem, 1.55rem + 4.4vw, 4.5rem);
+
+  --w-regular: 400;
+  --w-medium: 500;
+  --w-semibold: 600;
+  --w-bold: 700;
+
+  --tracking-tight: -0.035em;
+  --tracking-display: -0.045em;
+  --tracking-label: 0.12em;
+
+  /* Space ---------------------------------------------------------------- */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+
+  /* Radius --------------------------------------------------------------- */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-pill: 999px;
+
+  /* Elevation ------------------------------------------------------------ */
+  --shadow-xs: 0 1px 2px rgba(16, 24, 39, 0.05);
+  --shadow-sm: 0 1px 3px rgba(16, 24, 39, 0.06), 0 1px 2px rgba(16, 24, 39, 0.04);
+  --shadow-md: 0 8px 24px -12px rgba(16, 24, 39, 0.18), 0 1px 3px rgba(16, 24, 39, 0.05);
+  --shadow-lg: 0 24px 60px -32px rgba(16, 24, 39, 0.35), 0 2px 8px rgba(16, 24, 39, 0.05);
+  --shadow-focus: 0 0 0 3px rgba(18, 103, 213, 0.22);
+  --shadow-focus-red: 0 0 0 3px rgba(227, 38, 54, 0.18);
+
+  /* Motion --------------------------------------------------------------- */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 130ms;
+  --dur-base: 220ms;
+  --dur-slow: 420ms;
+
+  /* Layout --------------------------------------------------------------- */
+  --shell-max: 1120px;
+  --shell-pad: clamp(1.25rem, 5vw, 3rem);
+  --header-height: 64px;
+  --stage-width: 760px;
+
+  /* Controls ------------------------------------------------------------- */
+  --control-height: 44px;
+  --touch-min: 44px;
+}
+
+@media (max-width: 640px) {
+  :root {
+    --header-height: 60px;
+    --stage-width: 100%;
+  }
+}

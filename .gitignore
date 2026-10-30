@@ -1,0 +1,27 @@
+# Internal working notes and local test harness
+.vendor-tmp/
+PLAN/
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Cloudflare / Wrangler local state
+.wrangler/
+worker/.wrangler/
+worker/node_modules/
+.dev.vars
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Logs
+*.log
+npm-debug.log*

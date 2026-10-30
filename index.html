@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+
+    <title>Droply — Fast &amp; Private Peer-to-Peer File Transfer</title>
+    <meta
+      name="description"
+      content="Send files directly between devices with Droply. Connect using a simple transfer code or QR scan and share files through peer-to-peer technology."
+    />
+    <link rel="canonical" href="https://droply-files.vercel.app/" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+    <meta name="theme-color" content="#f7f8fa" />
+    <meta name="color-scheme" content="light" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta name="application-name" content="Droply" />
+    <meta name="author" content="Eagox Studio" />
+    <meta name="publisher" content="Eagox Studio" />
+    <meta name="apple-mobile-web-app-title" content="Droply" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="format-detection" content="telephone=no" />
+
+    <!--
+      Search-engine verification. Add the real tokens issued by Google Search
+      Console / Bing Webmaster Tools here (or via Vercel env vars at build time).
+      No placeholder token is shipped, because an invented one would fail
+      verification and mislead visitors.
+    -->
+    <!-- <meta name="google-site-verification" content="REPLACE_WITH_GOOGLE_TOKEN" /> -->
+    <!-- <meta name="msvalidate.01" content="REPLACE_WITH_BING_TOKEN" /> -->
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Droply" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:title" content="Droply — Fast &amp; Private Peer-to-Peer File Transfer" />
+    <meta
+      property="og:description"
+      content="Send files directly between devices with Droply. Connect using a simple transfer code or QR scan and share files through peer-to-peer technology."
+    />
+    <meta property="og:url" content="https://droply-files.vercel.app/" />
+    <meta property="og:image" content="https://droply-files.vercel.app/assets/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Droply — peer-to-peer file transfer between two devices" />
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Droply — Fast &amp; Private Peer-to-Peer File Transfer" />
+    <meta
+      name="twitter:description"
+      content="Send files directly between devices with Droply. Connect using a simple transfer code or QR scan and share files through peer-to-peer technology."
+    />
+    <meta name="twitter:image" content="https://droply-files.vercel.app/assets/og-image.png" />
+    <meta name="twitter:image:alt" content="Droply — direct, encrypted file transfer" />
+
+    <!--
+      Signaling endpoint. Leave empty to use the same origin (useful when the
+      Worker is routed on /api/* of the same domain). Set it to your deployed
+      Worker URL, e.g. https://droply-signaling.example.workers.dev
+      See js/config.js for the full list of runtime options.
+    -->
+    <meta name="droply-signaling" content="" />
+    <meta name="droply-turn-url" content="" />
+    <meta name="droply-turn-username" content="" />
+    <meta name="droply-turn-credential" content="" />
+
+    <!-- Favicons: SVG first, then ICO, then PNG fallbacks -->
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="assets/favicon.ico" sizes="16x16 32x32 48x48 64x64" />
+    <link rel="icon" href="assets/favicon-32.png" sizes="32x32" type="image/png" />
+    <link rel="icon" href="assets/icon-192.png" sizes="192x192" type="image/png" />
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" sizes="180x180" />
+    <link rel="manifest" href="site.webmanifest" />
+
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/layout.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/responsive.css" />
+
+    <!--
+      Structured data. Only facts that are true of this build: no ratings, no
+      review counts, no pricing beyond "free to use", no user numbers.
+    -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "@id": "https://droply-files.vercel.app/#website",
+            "url": "https://droply-files.vercel.app/",
+            "name": "Droply",
+            "description": "Peer-to-peer file transfer between two browsers.",
+            "inLanguage": "en",
+            "publisher": { "@id": "https://droply-files.vercel.app/#organization" }
+          },
+          {
+            "@type": "Organization",
+            "@id": "https://droply-files.vercel.app/#organization",
+            "name": "Eagox Studio",
+            "url": "https://alshahriarsayon.vercel.app/",
+            "founder": {
+              "@type": "Person",
+              "name": "Al Shahriar Sayon",
+              "url": "https://alshahriarsayon.vercel.app/"
+            },
+            "sameAs": ["https://github.com/Alshahriar-07/Droply"]
+          },
+          {
+            "@type": "SoftwareApplication",
+            "@id": "https://droply-files.vercel.app/#app",
+            "name": "Droply",
+            "applicationCategory": "UtilitiesApplication",
+            "applicationSubCategory": "File Transfer",
+            "operatingSystem": "Web Browser",
+            "browserRequirements": "Requires WebRTC data channels and JavaScript",
+            "url": "https://droply-files.vercel.app/",
+            "description": "Send files directly between devices with Droply. Connect using a simple transfer code or QR scan and share files through peer-to-peer technology.",
+            "isAccessibleForFree": true,
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "license": "https://github.com/Alshahriar-07/Droply/blob/main/LICENSE",
+            "codeRepository": "https://github.com/Alshahriar-07/Droply",
+            "publisher": { "@id": "https://droply-files.vercel.app/#organization" },
+            "isPartOf": { "@id": "https://droply-files.vercel.app/#website" },
+            "featureList": [
+              "Six-character transfer codes",
+              "QR code pairing",
+              "Direct peer-to-peer transfer over WebRTC",
+              "Multiple files per transfer",
+              "Receiver approval before any file data moves"
+            ]
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <div class="app">
+      <a class="skip-link" href="#app">Skip to content</a>
+
+      <div class="intro" id="intro" aria-hidden="true">
+        <div class="intro__inner">
+          <div class="intro__mark">
+            <img src="assets/logo-96.png" alt="" width="64" height="64" decoding="async" />
+          </div>
+          <span class="intro__word">Droply</span>
+          <span class="intro__line"></span>
+        </div>
+      </div>
+
+      <header class="site-header" id="site-header">
+        <div class="site-header__inner">
+          <a class="brand" href="#/" aria-label="Droply home">
+            <img
+              class="brand__mark"
+              src="assets/logo-96.png"
+              alt=""
+              width="30"
+              height="30"
+              decoding="async"
+            />
+            <span class="brand__name">Droply</span>
+          </a>
+
+          <nav class="site-nav" aria-label="Primary">
+            <button type="button" class="site-nav__link" data-open-dialog="how-it-works">
+              How it works
+            </button>
+            <button type="button" class="site-nav__link site-nav__link--optional" data-open-dialog="privacy">
+              Privacy
+            </button>
+            <span class="site-nav__divider" aria-hidden="true"></span>
+            <a
+              class="site-nav__link"
+              href="https://github.com/Alshahriar-07/Droply"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <span class="site-nav__link-text">GitHub</span>
+            </a>
+          </nav>
+        </div>
+      </header>
+
+      <main class="main" id="app" tabindex="-1">
+        <div class="screen">
+          <div class="screen-head">
+            <h1>Loading Droply…</h1>
+            <p>Preparing the direct transfer client.</p>
+          </div>
+          <noscript>
+            <div class="alert alert--danger">
+              <i data-icon="circle-alert"></i>
+              <span>Droply needs JavaScript to create the encrypted peer-to-peer connection.</span>
+            </div>
+          </noscript>
+        </div>
+      </main>
+
+      <footer class="site-footer">
+        <div class="site-footer__inner">
+          <div class="site-footer__brand">
+            <a class="brand" href="#/" aria-label="Droply home">
+              <img
+                class="brand__mark"
+                src="assets/logo-96.png"
+                alt=""
+                width="30"
+                height="30"
+                decoding="async"
+              />
+              <span class="brand__name">Droply</span>
+            </a>
+            <p class="site-footer__tagline">
+              One-time transfers between two browsers. Files are never uploaded to Droply storage.
+            </p>
+          </div>
+
+          <nav class="site-footer__nav" aria-label="Footer">
+            <div class="site-footer__col">
+              <span class="site-footer__label">Product</span>
+              <button type="button" data-open-dialog="how-it-works">How it works</button>
+              <button type="button" data-open-dialog="privacy">Privacy &amp; security</button>
+              <a href="https://droply-files.vercel.app/">droply-files.vercel.app</a>
+            </div>
+            <div class="site-footer__col">
+              <span class="site-footer__label">Project</span>
+              <a
+                href="https://github.com/Alshahriar-07/Droply"
+                target="_blank"
+                rel="noopener noreferrer"
+                >GitHub</a
+              >
+              <a
+                href="https://github.com/Alshahriar-07/Droply/blob/main/LICENSE"
+                target="_blank"
+                rel="noopener noreferrer"
+                >License</a
+              >
+              <a
+                href="https://alshahriarsayon.vercel.app/"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Developer</a
+              >
+            </div>
+          </nav>
+        </div>
+
+        <div class="site-footer__base">
+          <span>
+            Droply is an open-source project by Eagox Studio.
+          </span>
+          <span>
+            Built by
+            <a href="https://alshahriarsayon.vercel.app/" target="_blank" rel="noopener noreferrer"
+              >Al Shahriar Sayon</a
+            >
+          </span>
+        </div>
+      </footer>
+    </div>
+
+    <div class="toast-stack" id="toast-stack" role="status" aria-live="polite"></div>
+
+    <dialog class="sheet" id="dialog-how-it-works" aria-labelledby="how-it-works-title">
+      <div class="sheet__body">
+        <h2 id="how-it-works-title">How Droply works</h2>
+        <p>
+          Droply pairs two browsers with a short code, then moves the file bytes directly between
+          them over an encrypted WebRTC data channel.
+        </p>
+        <ul>
+          <li>The sender picks files and creates a one-time room with a six-character code.</li>
+          <li>The receiver enters the code or scans the QR code.</li>
+          <li>Both browsers negotiate a peer-to-peer connection through a lightweight signaling service.</li>
+          <li>After the receiver accepts, file chunks stream directly between the devices.</li>
+          <li>The room closes when the transfer finishes, is cancelled, or expires.</li>
+        </ul>
+        <h3>What leaves your device</h3>
+        <p>
+          Only connection metadata (offer, answer and ICE candidates) reaches the signaling service.
+          File names, sizes and contents never do. Files are decrypted only on the receiving device.
+        </p>
+        <div class="btn-group">
+          <button type="button" class="btn btn--secondary btn--sm" data-close-dialog>Close</button>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog class="sheet" id="dialog-privacy" aria-labelledby="privacy-title">
+      <div class="sheet__body">
+        <h2 id="privacy-title">Privacy &amp; security</h2>
+        <ul>
+          <li>No accounts, no sign-in and no transfer history.</li>
+          <li>File contents are never uploaded to Droply, Cloudflare or any storage bucket.</li>
+          <li>Transfers use WebRTC DTLS encryption, which is end-to-end between the two browsers.</li>
+          <li>Rooms are one-time, limited to one sender and one receiver, and expire automatically.</li>
+          <li>The receiver always sees what is being sent and must accept before any file data flows.</li>
+          <li>The signaling service only handles short-lived connection setup messages.</li>
+        </ul>
+        <h3>Network reality</h3>
+        <p>
+          On some networks (symmetric NAT, strict corporate firewalls) a direct route is impossible.
+          In that case Droply reports the failure instead of silently falling back to storage. If a
+          TURN relay is configured by the operator, encrypted WebRTC packets are relayed — never stored.
+        </p>
+        <p>
+          Room codes are short by design. They are rate-limited, expire quickly and only grant access
+          to a single pending transfer, so never share a code publicly.
+        </p>
+        <div class="btn-group">
+          <button type="button" class="btn btn--secondary btn--sm" data-close-dialog>Close</button>
+        </div>
+      </div>
+    </dialog>
+
+    <!-- Vendored, dependency-free libraries (classic scripts, loaded before the module) -->
+    <script src="js/vendor/qrcode-generator.js"></script>
+    <script src="js/vendor/jsQR.js"></script>
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>

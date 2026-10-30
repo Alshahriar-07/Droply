@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>404 Not found — Droply</title>
+    <meta name="description" content="This page does not exist in Droply." />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="x-robots-tag" content="noindex, nofollow" />
+    <meta name="theme-color" content="#f7f8fa" />
+    <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/css/tokens.css" />
+    <link rel="stylesheet" href="/css/base.css" />
+    <style>
+      /* Static error page: shares the design tokens but no app JavaScript. */
+      body {
+        display: grid;
+        place-items: center;
+        min-height: 100dvh;
+        padding: clamp(1.25rem, 5vw, 3rem) 0;
+      }
+
+      .error-shell {
+        width: min(100%, 560px);
+        padding: 0 var(--shell-pad);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-6);
+      }
+
+      .error-brand {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-2);
+        font-weight: var(--w-bold);
+        letter-spacing: -0.03em;
+        color: var(--text);
+        text-decoration: none;
+        width: fit-content;
+      }
+
+      .error-brand img {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        background: var(--white);
+        box-shadow: var(--shadow-xs);
+      }
+
+      .error-label {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-2);
+        font-family: var(--font-mono);
+        font-size: var(--fs-xs);
+        letter-spacing: 0.08em;
+        color: var(--red-strong);
+        text-transform: uppercase;
+      }
+
+      .error-label::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+
+      .error-code {
+        font-size: clamp(3rem, 2rem + 6vw, 4.5rem);
+        font-weight: var(--w-bold);
+        letter-spacing: -0.05em;
+        line-height: 0.9;
+        color: var(--navy);
+        margin: 0;
+      }
+
+      .error-title {
+        font-size: var(--fs-xl);
+        margin: var(--space-2) 0 0;
+      }
+
+      .error-text {
+        color: var(--text-secondary);
+        max-width: 46ch;
+        text-wrap: pretty;
+      }
+
+      .error-card {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-4);
+        padding: var(--space-5);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        background: var(--surface);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .error-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-3);
+      }
+
+      .error-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-2);
+        min-height: var(--control-height);
+        padding: 0 var(--space-5);
+        border-radius: var(--radius-sm);
+        border: 1px solid transparent;
+        background: var(--navy);
+        color: var(--white);
+        font: inherit;
+        font-size: var(--fs-sm);
+        font-weight: var(--w-semibold);
+        text-decoration: none;
+        cursor: pointer;
+        transition: background var(--dur-fast) var(--ease-out);
+      }
+
+      .error-btn:hover {
+        background: #1b2740;
+        text-decoration: none;
+      }
+
+      .error-btn--secondary {
+        background: transparent;
+        color: var(--text-secondary);
+        border-color: var(--border-strong);
+      }
+
+      .error-btn--secondary:hover {
+        background: var(--paper-2);
+        color: var(--text);
+      }
+
+      .error-note {
+        font-size: var(--fs-xs);
+        color: var(--text-faint);
+      }
+
+      .error-note a {
+        color: var(--text-muted);
+      }
+
+      @media (max-width: 480px) {
+        .error-actions {
+          flex-direction: column;
+        }
+
+        .error-btn {
+          justify-content: center;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="error-shell">
+      <a class="error-brand" href="/">
+        <img src="/assets/logo-96.png" alt="" width="30" height="30" />
+        <span>Droply</span>
+      </a>
+
+      <div>
+        <span class="error-label" data-label>Not found</span>
+        <p class="error-code" data-code>404</p>
+        <h1 class="error-title" data-title>There’s nothing here</h1>
+      </div>
+
+      <div class="error-card">
+        <p class="error-text" data-text>
+          No page matches this address. Transfer codes never appear in a web address, so no
+          transfer was lost — ask the sender for a new code if you need to pair again.
+        </p>
+        <div class="error-actions">
+          <a class="error-btn" href="/">Back to Droply</a>
+          <a class="error-btn error-btn--secondary" href="/">Reload Droply</a>
+        </div>
+      </div>
+
+      <p class="error-note">
+        If this keeps happening, report the status code above on
+        <a href="https://github.com/Alshahriar-07/Droply/issues">GitHub</a>. Transfer codes and file
+        contents are never stored, so nothing of yours is held by this error.
+      </p>
+    </main>
+
+  </body>
+</html>

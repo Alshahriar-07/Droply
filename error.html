@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Error — Droply</title>
+    <meta name="description" content="Droply could not serve this request." />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="x-robots-tag" content="noindex, nofollow" />
+    <meta name="theme-color" content="#f7f8fa" />
+    <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/css/tokens.css" />
+    <link rel="stylesheet" href="/css/base.css" />
+    <style>
+      /* Static error page: shares the design tokens but no app JavaScript. */
+      body {
+        display: grid;
+        place-items: center;
+        min-height: 100dvh;
+        padding: clamp(1.25rem, 5vw, 3rem) 0;
+      }
+
+      .error-shell {
+        width: min(100%, 560px);
+        padding: 0 var(--shell-pad);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-6);
+      }
+
+      .error-brand {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-2);
+        font-weight: var(--w-bold);
+        letter-spacing: -0.03em;
+        color: var(--text);
+        text-decoration: none;
+        width: fit-content;
+      }
+
+      .error-brand img {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        background: var(--white);
+        box-shadow: var(--shadow-xs);
+      }
+
+      .error-label {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-2);
+        font-family: var(--font-mono);
+        font-size: var(--fs-xs);
+        letter-spacing: 0.08em;
+        color: var(--red-strong);
+        text-transform: uppercase;
+      }
+
+      .error-label::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+
+      .error-code {
+        font-size: clamp(3rem, 2rem + 6vw, 4.5rem);
+        font-weight: var(--w-bold);
+        letter-spacing: -0.05em;
+        line-height: 0.9;
+        color: var(--navy);
+        margin: 0;
+      }
+
+      .error-title {
+        font-size: var(--fs-xl);
+        margin: var(--space-2) 0 0;
+      }
+
+      .error-text {
+        color: var(--text-secondary);
+        max-width: 46ch;
+        text-wrap: pretty;
+      }
+
+      .error-card {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-4);
+        padding: var(--space-5);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        background: var(--surface);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .error-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-3);
+      }
+
+      .error-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-2);
+        min-height: var(--control-height);
+        padding: 0 var(--space-5);
+        border-radius: var(--radius-sm);
+        border: 1px solid transparent;
+        background: var(--navy);
+        color: var(--white);
+        font: inherit;
+        font-size: var(--fs-sm);
+        font-weight: var(--w-semibold);
+        text-decoration: none;
+        cursor: pointer;
+        transition: background var(--dur-fast) var(--ease-out);
+      }
+
+      .error-btn:hover {
+        background: #1b2740;
+        text-decoration: none;
+      }
+
+      .error-btn--secondary {
+        background: transparent;
+        color: var(--text-secondary);
+        border-color: var(--border-strong);
+      }
+
+      .error-btn--secondary:hover {
+        background: var(--paper-2);
+        color: var(--text);
+      }
+
+      .error-note {
+        font-size: var(--fs-xs);
+        color: var(--text-faint);
+      }
+
+      .error-note a {
+        color: var(--text-muted);
+      }
+
+      @media (max-width: 480px) {
+        .error-actions {
+          flex-direction: column;
+        }
+
+        .error-btn {
+          justify-content: center;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="error-shell">
+      <a class="error-brand" href="/">
+        <img src="/assets/logo-96.png" alt="" width="30" height="30" />
+        <span>Droply</span>
+      </a>
+
+      <div>
+        <span class="error-label" data-label>Request failed</span>
+        <p class="error-code" data-code>—</p>
+        <h1 class="error-title" data-title>Something went wrong</h1>
+      </div>
+
+      <div class="error-card">
+        <p class="error-text" data-text>
+          Droply could not serve this request. Reload the page or head back to the transfer screen.
+        </p>
+        <div class="error-actions">
+          <a class="error-btn" href="/">Back to Droply</a>
+          <button class="error-btn error-btn--secondary" type="button" data-reload>Reload page</button>
+        </div>
+      </div>
+
+      <p class="error-note">
+        If this keeps happening, report the status code above on
+        <a href="https://github.com/Alshahriar-07/Droply/issues">GitHub</a>. Transfer codes and file
+        contents are never stored, so nothing of yours is held by this error.
+      </p>
+    </main>
+
+    <script>
+      // Copy for each hosted error route. Kept local so the page works without
+      // loading the application bundle.
+      const COPY = {
+        403: {
+          label: "Forbidden",
+          title: "You can't open this",
+          text: "This page is not available to your browser. If you followed a link from somewhere else, try the main Droply page instead.",
+        },
+        400: {
+          label: "Bad request",
+          title: "That request didn't make sense",
+          text: "The address or the data sent with it was malformed. Reload the main page and try again.",
+        },
+        404: {
+          label: "Not found",
+          title: "There's nothing here",
+          text: "No page matches this address. Transfer codes are never part of a web address, so nothing was lost.",
+        },
+        410: {
+          label: "Gone",
+          title: "That transfer has expired",
+          text: "Droply rooms are one-time and expire after ten minutes, or as soon as they are used. Ask the sender for a new code.",
+        },
+        429: {
+          label: "Too many requests",
+          title: "Slow down a moment",
+          text: "Too many requests arrived from this network. Wait about a minute, then try again.",
+        },
+        500: {
+          label: "Server error",
+          title: "Droply hit an internal error",
+          text: "Something failed while serving this request. Reloading usually fixes it.",
+        },
+        502: {
+          label: "Bad gateway",
+          title: "The connection service didn't answer",
+          text: "A service Droply depends on returned an invalid response. Try again in a moment.",
+        },
+        503: {
+          label: "Unavailable",
+          title: "Droply is temporarily unavailable",
+          text: "The service is down or being updated. Try again shortly.",
+        },
+        504: {
+          label: "Gateway timeout",
+          title: "The request took too long",
+          text: "A service Droply depends on did not respond in time. Try again in a moment.",
+        },
+      };
+
+      // Status comes from the path (/403) because that survives serving the
+      // page with a real 4xx through the Edge route; ?code= is a fallback for
+      // direct links to /error.html.
+      const params = new URLSearchParams(location.search);
+      const fromPath = Number((location.pathname.match(/^\/(\d{3})\/?$/) || [])[1]);
+      const requested = COPY[fromPath] ? fromPath : Number(params.get("code"));
+      const status = COPY[requested] ? requested : 500;
+      const copy = COPY[status];
+
+      document.querySelector("[data-label]").textContent = copy.label;
+      document.querySelector("[data-code]").textContent = String(status);
+      document.querySelector("[data-title]").textContent = copy.title;
+      document.querySelector("[data-text]").textContent = copy.text;
+      document.title = `${status} ${copy.label} — Droply`;
+      document.querySelector("[data-reload]").addEventListener("click", () => location.reload());
+    </script>
+  </body>
+</html>

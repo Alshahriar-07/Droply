@@ -1,0 +1,26 @@
+# Droply — https://droply-files.vercel.app/
+# The public homepage and its static assets are crawlable. Transfer rooms live
+# only in the URL fragment and server memory, so they are never crawled. Error
+# routes and the signaling API are excluded.
+
+User-agent: *
+Allow: /
+Allow: /assets/
+Allow: /css/
+Allow: /js/
+
+# Signaling API (never renders content)
+Disallow: /api/
+
+# Branded error routes — noindex, and no reason to crawl them
+Disallow: /error
+Disallow: /404
+Disallow: /403
+Disallow: /410
+Disallow: /429
+Disallow: /500
+Disallow: /502
+Disallow: /503
+Disallow: /504
+
+Sitemap: https://droply-files.vercel.app/sitemap.xml
