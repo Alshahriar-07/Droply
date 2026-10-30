@@ -7,6 +7,8 @@
  * File bytes never reach this service.
  */
 
+import { jsonResponse, randomToken, hashToken, hashesEqual } from "./util.js";
+
 const CODE_PATTERN = /^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$/;
 const MAX_WS_MESSAGE_BYTES = 64 * 1024;
 const MAX_SDP_BYTES = 32 * 1024;
@@ -20,41 +22,6 @@ const ROOM_STORAGE_KEY = "room";
 /* --------------------------------------------------------------------------
    Helpers
    -------------------------------------------------------------------------- */
-
-export function jsonResponse(data, status = 200, extraHeaders = {}) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: {
-      "content-type": "application/json; charset=utf-8",
-      "cache-control": "no-store",
-      "x-content-type-options": "nosniff",
-      ...extraHeaders,
-    },
-  });
-}
-
-function randomToken() {
-  const bytes = new Uint8Array(24);
-  crypto.getRandomValues(bytes);
-  let binary = "";
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-
-async function hashToken(token) {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
-  return Array.from(new Uint8Array(digest))
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-/** Length-independent comparison to avoid timing leaks on token hashes. */
-function hashesEqual(a, b) {
-  if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i += 1) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
-}
 
 function isSdp(value) {
   return typeof value === "string" && value.length >= 16 && value.length <= MAX_SDP_BYTES && value.startsWith("v=0");

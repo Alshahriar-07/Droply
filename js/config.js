@@ -129,6 +129,19 @@ export function signalingSocketUrl(code, token) {
   return `${ws}/api/rooms/${encodeURIComponent(code)}/socket?token=${encodeURIComponent(token)}`;
 }
 
+/** WebSocket URL for the opt-in nearby presence channel. */
+export function nearbySocketUrl(token) {
+  const base = config.signalingBaseUrl || window.location.origin;
+  const ws = base.replace(/^http/, "ws");
+  return `${ws}/api/nearby/socket?token=${encodeURIComponent(token)}`;
+}
+
+/** Public pairing link encoded in the pairing QR code. */
+export function pairingLink(code) {
+  const { origin, pathname } = window.location;
+  return `${origin}${pathname}#pair=${encodeURIComponent(String(code ?? "").toUpperCase())}`;
+}
+
 /** Public receive link encoded in the QR code. */
 export function receiveLink(code) {
   const { origin, pathname } = window.location;

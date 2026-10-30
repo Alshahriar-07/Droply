@@ -81,6 +81,7 @@
     <link rel="stylesheet" href="css/base.css" />
     <link rel="stylesheet" href="css/layout.css" />
     <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/features.css" />
     <link rel="stylesheet" href="css/responsive.css" />
 
     <!--
@@ -169,15 +170,24 @@
           </a>
 
           <nav class="site-nav" aria-label="Primary">
+            <button type="button" class="site-nav__link" data-route="home" aria-current="page">
+              Home
+            </button>
+            <button type="button" class="site-nav__link" data-route="nearby">
+              Nearby
+            </button>
+            <button type="button" class="site-nav__link" data-route="saved">
+              Saved devices
+            </button>
+            <button type="button" class="site-nav__link" data-route="profile">
+              Profile
+            </button>
+            <span class="site-nav__divider" aria-hidden="true"></span>
             <button type="button" class="site-nav__link" data-open-dialog="how-it-works">
               How it works
             </button>
-            <button type="button" class="site-nav__link site-nav__link--optional" data-open-dialog="privacy">
-              Privacy
-            </button>
-            <span class="site-nav__divider" aria-hidden="true"></span>
             <a
-              class="site-nav__link"
+              class="site-nav__link site-nav__link--optional"
               href="https://github.com/Alshahriar-07/Droply"
               target="_blank"
               rel="noopener noreferrer"
@@ -265,6 +275,39 @@
           </span>
         </div>
       </footer>
+
+      <nav class="tabbar" aria-label="Sections">
+        <button type="button" class="tabbar__item" data-route="home" aria-current="page">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 10.5 12 3l9 7.5" />
+            <path d="M5.5 9.5V21h13V9.5" />
+          </svg>
+          <span>Home</span>
+        </button>
+        <button type="button" class="tabbar__item" data-route="nearby">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M2.5 8.5a15 15 0 0 1 19 0" />
+            <path d="M5.5 12a10 10 0 0 1 13 0" />
+            <path d="M8.5 15.5a5 5 0 0 1 7 0" />
+            <circle cx="12" cy="19" r="1" fill="currentColor" stroke="none" />
+          </svg>
+          <span>Nearby</span>
+        </button>
+        <button type="button" class="tabbar__item" data-route="saved">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3l7 3v5c0 4.4-2.9 8.1-7 9-4.1-.9-7-4.6-7-9V6z" />
+            <path d="m9 12 2 2 4-4" />
+          </svg>
+          <span>Saved</span>
+        </button>
+        <button type="button" class="tabbar__item" data-route="profile">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+          <span>Profile</span>
+        </button>
+      </nav>
     </div>
 
     <div class="toast-stack" id="toast-stack" role="status" aria-live="polite"></div>

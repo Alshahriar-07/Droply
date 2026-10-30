@@ -1,11 +1,21 @@
 /** Landing screen: brand promise plus the two primary actions. */
 
 import { el } from "./common.js";
+import { config } from "../config.js";
+import { formatBytes } from "../utils/format-bytes.js";
+
+/** The ceiling is read from the same constant the transfer engine enforces. */
+const capacity = formatBytes(config.maxTotalBytes, { decimals: 0 });
 
 /**
- * @param {{ onSend: () => void, onReceive: () => void }} handlers
+ * @param {{
+ *   onSend: () => void,
+ *   onReceive: () => void,
+ *   onNearby: () => void,
+ *   onSaved: () => void
+ * }} handlers
  */
-export function mountHome({ onSend, onReceive }) {
+export function mountHome({ onSend, onReceive, onNearby, onSaved }) {
   const element = el(`
     <section class="screen" aria-labelledby="home-title">
       <div class="home">
@@ -15,17 +25,27 @@ export function mountHome({ onSend, onReceive }) {
             Peer-to-peer file transfer
           </span>
 
-          <h1 class="hero__title" id="home-title">Move files. <br /><em>Not limits.</em></h1>
+          <h1 class="hero__title" id="home-title">Send files.<br /><em>Not limits.</em></h1>
 
           <p class="hero__sub">
-            Send a file straight from this browser to another device. Pair with a six-character
-            code, then the data streams across an encrypted peer-to-peer channel.
+            Pick a file, share a six-character code, and it travels straight to the other device
+            over an encrypted connection. No upload, no storage, no account.
           </p>
 
-          <p class="hero__privacy">
-            <i data-icon="shield-check" data-size="16"></i>
-            Your files are never uploaded to Droply storage.
-          </p>
+          <div class="hero__meta">
+            <span class="meta-chip meta-chip--accent">
+              <i data-icon="send" data-size="13"></i>
+              <strong>Up to ${capacity}</strong> per transfer
+            </span>
+            <span class="meta-chip">
+              <i data-icon="lock" data-size="13"></i>
+              Encrypted in transit
+            </span>
+            <span class="meta-chip">
+              <i data-icon="shield-check" data-size="13"></i>
+              Never uploaded
+            </span>
+          </div>
         </div>
 
         <div class="home__panel">
@@ -39,8 +59,8 @@ export function mountHome({ onSend, onReceive }) {
               <span class="action-card__index" aria-hidden="true">01</span>
               <span class="action-card__icon"><i data-icon="upload" data-size="19"></i></span>
               <span class="action-card__body">
-                <span class="action-card__title">Send</span>
-                <span class="action-card__desc">Pick files and share a one-time code.</span>
+                <span class="action-card__title">Send files</span>
+                <span class="action-card__desc">Pick files, then share one short code.</span>
               </span>
               <span class="action-card__go"><i data-icon="chevron-right" data-size="18"></i></span>
             </button>
@@ -49,10 +69,27 @@ export function mountHome({ onSend, onReceive }) {
               <span class="action-card__index" aria-hidden="true">02</span>
               <span class="action-card__icon"><i data-icon="download" data-size="19"></i></span>
               <span class="action-card__body">
-                <span class="action-card__title">Receive</span>
+                <span class="action-card__title">Receive files</span>
                 <span class="action-card__desc">Scan a QR code or type the six characters.</span>
               </span>
               <span class="action-card__go"><i data-icon="chevron-right" data-size="18"></i></span>
+            </button>
+          </div>
+
+          <div class="home-links">
+            <button type="button" class="home-link" data-action="nearby">
+              <span class="home-link__icon"><i data-icon="wifi" data-size="17"></i></span>
+              <span class="home-link__body">
+                <span class="home-link__title">Nearby devices</span>
+                <span class="home-link__hint">Find Droply on this network</span>
+              </span>
+            </button>
+            <button type="button" class="home-link" data-action="saved">
+              <span class="home-link__icon"><i data-icon="shield-check" data-size="17"></i></span>
+              <span class="home-link__body">
+                <span class="home-link__title">Saved devices</span>
+                <span class="home-link__hint">Send again without a new code</span>
+              </span>
             </button>
           </div>
         </div>
@@ -137,6 +174,8 @@ export function mountHome({ onSend, onReceive }) {
 
   element.querySelector('[data-action="send"]').addEventListener("click", onSend);
   element.querySelector('[data-action="receive"]').addEventListener("click", onReceive);
+  element.querySelector('[data-action="nearby"]').addEventListener("click", onNearby);
+  element.querySelector('[data-action="saved"]').addEventListener("click", onSaved);
 
   return { element, title: "Send or receive files" };
 }

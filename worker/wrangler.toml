@@ -14,10 +14,30 @@ class_name = "Room"
 name = "RATE_LIMITER"
 class_name = "RateLimiter"
 
+# Nearby Devices presence groups. One instance per hashed network address; it
+# holds only short-lived, opt-in records and never any file data.
+[[durable_objects.bindings]]
+name = "PRESENCE"
+class_name = "Presence"
+
+# Short-lived device-pairing sessions keyed by a six-character code. Holds two
+# public keys and a hashed owner token for five minutes, then disappears.
+[[durable_objects.bindings]]
+name = "PAIRING"
+class_name = "Pairing"
+
 # SQLite-backed Durable Objects are available on the Workers free plan.
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Room", "RateLimiter"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["Presence"]
+
+[[migrations]]
+tag = "v3"
+new_sqlite_classes = ["Pairing"]
 
 [vars]
 # Comma separated list of allowed browser origins. Replace BEFORE deploying.

@@ -14,6 +14,7 @@
  */
 
 import { validateManifestFiles, sanitizeIceCandidate } from "../utils/validation.js";
+import { parseDeviceMetadata } from "./device-profile.js";
 
 export const PROTOCOL_VERSION = 1;
 
@@ -26,6 +27,8 @@ export const CHUNK_HEADER_BYTES = 11;
 
 /** Control message types exchanged over the data channel. */
 export const CONTROL = Object.freeze({
+  /** Receiver -> sender: public device profile, sent as soon as the channel opens. */
+  HELLO: "hello",
   MANIFEST: "manifest",
   ACCEPT: "accept",
   REJECT: "reject",
@@ -150,7 +153,10 @@ export function parseManifest(message) {
   if (Number.isFinite(declaredTotal) && declaredTotal !== totalBytes) {
     throw new ProtocolError("Manifest total does not match its files.");
   }
-  return { files, totalBytes };
+  // Device metadata is optional and strictly reduced to known public fields;
+  // an invalid block is ignored rather than treated as a trusted identity.
+  const peer = parseDeviceMetadata(message.peer);
+  return { files, totalBytes, peer };
 }
 
 /** Narrow helpers used by the sender (kept here so both sides share shapes). */

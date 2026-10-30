@@ -18,6 +18,7 @@ import {
   toPercent,
 } from "../utils/format-bytes.js";
 import { inlineErrorMarkup } from "./error-view.js";
+import { identityMarkup } from "./device-avatar.js";
 
 /* --------------------------------------------------------------------------
    Screen 8 — live transfer
@@ -27,10 +28,12 @@ import { inlineErrorMarkup } from "./error-view.js";
  * @param {{
  *   mode: "send"|"receive",
  *   files: Array<{ id?: string, name: string, size: number, type?: string }>,
+ *   local?: object|null,
+ *   peer?: object|null,
  *   onCancel: () => void
  * }} options
  */
-export function mountTransfer({ mode, files, onCancel }) {
+export function mountTransfer({ mode, files, local = null, peer = null, onCancel }) {
   const verb = mode === "send" ? "Sending" : "Receiving";
   const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
 
@@ -53,6 +56,26 @@ export function mountTransfer({ mode, files, onCancel }) {
           </div>
         </div>
 
+        <div class="identity-strip" data-identity-strip>
+          <div class="identity-strip__side">
+            <div>
+              <span class="identity-strip__label" data-local-label>
+                ${mode === "send" ? "Sending from" : "Receiving on"}
+              </span>
+              <span data-local-identity></span>
+            </div>
+          </div>
+          <span class="identity-strip__arrow" aria-hidden="true">→</span>
+          <div class="identity-strip__side">
+            <div>
+              <span class="identity-strip__label" data-peer-label>
+                ${mode === "send" ? "Sending to" : "From"}
+              </span>
+              <span data-peer-identity></span>
+            </div>
+          </div>
+        </div>
+
         <div class="card transfer-body">
           <div class="overall">
             <div class="overall__top">
@@ -63,7 +86,20 @@ export function mountTransfer({ mode, files, onCancel }) {
               <div class="overall__label tabular" data-bytes>0 B / ${formatBytes(totalBytes)}</div>
             </div>
 
-            <div class="progress progress--brand progress--lg">
+            <div class="transfer-current">
+              <span class="code-label">Now</span>
+              <span class="transfer-current__name" data-current-file>Preparing…</span>
+            </div>
+
+            <div
+              class="progress progress--brand progress--lg"
+              data-progress
+              role="progressbar"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              aria-valuenow="0"
+              aria-label="Transfer progress"
+            >
               <span class="progress__fill" data-fill></span>
             </div>
 
@@ -103,6 +139,8 @@ export function mountTransfer({ mode, files, onCancel }) {
   const percentNode = qs(element, "[data-percent]");
   const bytesNode = qs(element, "[data-bytes]");
   const fill = qs(element, "[data-fill]");
+  const progressBar = qs(element, "[data-progress]");
+  const currentFile = qs(element, "[data-current-file]");
   const speedNode = qs(element, "[data-speed]");
   const etaNode = qs(element, "[data-eta]");
   const filesNode = qs(element, "[data-files]");
@@ -110,6 +148,22 @@ export function mountTransfer({ mode, files, onCancel }) {
   const statusText = qs(element, "[data-status-text]");
   const pathPill = qs(element, "[data-path]");
   const cancelBtn = qs(element, "[data-cancel]");
+  const localSlot = qs(element, "[data-local-identity]");
+  const peerSlot = qs(element, "[data-peer-identity]");
+
+  /** Updates the two identity labels without replacing the screen. */
+  function setIdentities({ local: nextLocal, peer: nextPeer } = {}) {
+    if (nextLocal !== undefined) local = nextLocal;
+    if (nextPeer !== undefined) peer = nextPeer;
+    localSlot.innerHTML = local
+      ? identityMarkup(local, { size: "sm" })
+      : `<span class="device-identity__meta">This device</span>`;
+    peerSlot.innerHTML = peer
+      ? identityMarkup(peer, { size: "sm" })
+      : `<span class="device-identity__meta">Waiting for the other device…</span>`;
+  }
+
+  setIdentities({});
 
   /** @type {Array<{ root: HTMLElement, fill: HTMLElement, pct: HTMLElement, bytes: HTMLElement, state: HTMLElement }>} */
   const rowRefs = files.map((file, index) => {
@@ -173,6 +227,17 @@ export function mountTransfer({ mode, files, onCancel }) {
 
     const done = detail.files.filter((file) => file.state === "done").length;
     filesNode.textContent = `${done} / ${detail.files.length}`;
+    progressBar?.setAttribute("aria-valuenow", String(percent));
+
+    // Names the file that is actually moving right now; never invents one.
+    const activeIndex = detail.files.findIndex((file) => file.state === "active");
+    const activeName = activeIndex >= 0 ? files[activeIndex]?.name ?? "" : "";
+    currentFile.textContent = activeName
+      ? activeName
+      : detail.complete
+        ? "Every file delivered"
+        : "Waiting for the first file";
+    currentFile.title = currentFile.textContent;
 
     detail.files.forEach((file, index) => {
       const row = rowRefs[index];
@@ -260,6 +325,7 @@ export function mountTransfer({ mode, files, onCancel }) {
     setPath,
     setCancelEnabled,
     markComplete,
+    setIdentities,
   };
 }
 
@@ -273,10 +339,18 @@ export function mountTransfer({ mode, files, onCancel }) {
  *   files: Array<{ name: string, size: number, url?: string }>,
  *   totalBytes: number,
  *   elapsedSeconds?: number,
+ *   local?: object|null,
+ *   peer?: object|null,
  *   onDone: () => void
  * }} options
  */
-export function mountTransferComplete({ mode, files, totalBytes, elapsedSeconds, onDone }) {
+export function mountTransferComplete({ mode, files, totalBytes, elapsedSeconds, local = null, peer = null, onDone }) {
+  const fromIdentity = mode === "send" ? local : peer;
+  const toIdentity = mode === "send" ? peer : local;
+  const fromLabel = mode === "send" ? "Sent from" : "Received from";
+  const toLabel = mode === "send" ? "Delivered to" : "Saved on";
+  const fromFallback = mode === "send" ? "This device" : "Other device";
+  const toFallback = mode === "send" ? "Other device" : "This device";
   const element = el(`
     <section class="screen" aria-labelledby="complete-title">
       <div class="stage stage--narrow">
@@ -291,6 +365,22 @@ export function mountTransferComplete({ mode, files, totalBytes, elapsedSeconds,
                 : "Every file arrived and its byte count was verified. Save them before closing this tab."
             }
           </p>
+
+          <div class="identity-strip" data-complete-identities>
+            <div class="identity-strip__side">
+              <div>
+                <span class="identity-strip__label">${fromLabel}</span>
+                ${identityMarkup(fromIdentity, { size: "sm", fallback: fromFallback })}
+              </div>
+            </div>
+            <span class="identity-strip__arrow" aria-hidden="true">→</span>
+            <div class="identity-strip__side">
+              <div>
+                <span class="identity-strip__label">${toLabel}</span>
+                ${identityMarkup(toIdentity, { size: "sm", fallback: toFallback })}
+              </div>
+            </div>
+          </div>
 
           <dl class="result__stats">
             <div class="result__stat">

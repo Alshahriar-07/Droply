@@ -53,3 +53,22 @@ export function toPercent(ratio) {
 export function formatFileCount(count) {
   return `${count} ${count === 1 ? "file" : "files"}`;
 }
+
+/** Epoch milliseconds -> "just now" / "12 min ago" / "3 days ago". */
+export function formatRelativeTime(timestamp, now = Date.now()) {
+  const value = Number(timestamp);
+  if (!Number.isFinite(value) || value <= 0) return "never";
+  const seconds = Math.max(0, Math.round((now - value) / 1000));
+  if (seconds < 45) return "just now";
+  if (seconds < 90) return "1 min ago";
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} ${hours === 1 ? "hour" : "hours"} ago`;
+  const days = Math.round(hours / 24);
+  if (days < 30) return `${days} ${days === 1 ? "day" : "days"} ago`;
+  const months = Math.round(days / 30);
+  if (months < 12) return `${months} ${months === 1 ? "month" : "months"} ago`;
+  const years = Math.round(months / 12);
+  return `${years} ${years === 1 ? "year" : "years"} ago`;
+}

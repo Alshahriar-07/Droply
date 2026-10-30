@@ -14,12 +14,19 @@ const MAX_DECODE_WIDTH = 640;
 
 export class QrScanner {
   /**
-   * @param {{ video: HTMLVideoElement, onResult: (code: string) => void, onError: (errorId: string) => void }} options
+   * @param {{
+   *   video: HTMLVideoElement,
+   *   onResult: (value: string) => void,
+   *   onError: (errorId: string) => void,
+   *   parse?: (text: string) => string|null
+   * }} options `parse` turns decoded text into the value to accept; returning
+   *   null means "not this kind of code" and keeps scanning.
    */
-  constructor({ video, onResult, onError }) {
+  constructor({ video, onResult, onError, parse = extractRoomCode }) {
     this.video = video;
     this.onResult = onResult;
     this.onError = onError;
+    this.parse = parse;
     this.stream = null;
     this.canvas = document.createElement("canvas");
     this.context = this.canvas.getContext("2d", { willReadFrequently: true });
@@ -133,13 +140,13 @@ export class QrScanner {
     }
 
     if (!result?.data) return;
-    const code = extractRoomCode(result.data);
-    if (!code) {
+    const value = this.parse(result.data);
+    if (!value) {
       this.onError("qr/invalid");
       return;
     }
     this.stop();
-    this.onResult(code);
+    this.onResult(value);
   }
 
   #stopTracks() {

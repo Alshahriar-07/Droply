@@ -14,6 +14,7 @@ import { config } from "../config.js";
 import { formatBytes, formatCountdown, formatFileCount } from "../utils/format-bytes.js";
 import { assertLocalFilesAreSendable, displayCode } from "../utils/validation.js";
 import { describeError } from "../core/errors.js";
+import { identityMarkup } from "./device-avatar.js";
 
 /* --------------------------------------------------------------------------
    Screen 2 — choose files
@@ -22,11 +23,12 @@ import { describeError } from "../core/errors.js";
 /**
  * @param {{
  *   files?: File[],
+ *   self?: object|null,
  *   onBack: () => void,
  *   onCreate: (files: File[]) => void
  * }} options
  */
-export function mountFileSelection({ files = [], onBack, onCreate }) {
+export function mountFileSelection({ files = [], self = null, onBack, onCreate }) {
   let selected = [...files];
   let busy = false;
 
@@ -44,6 +46,15 @@ export function mountFileSelection({ files = [], onBack, onCreate }) {
         <p>Add one or more files. They stay on your device until the receiver accepts the transfer.</p>
       </div>
 
+      <div class="identity-strip" data-sender-identity>
+        <div class="identity-strip__side">
+          <div>
+            <span class="identity-strip__label">Sending from</span>
+            ${identityMarkup(self, { size: "sm", fallback: "This device" })}
+          </div>
+        </div>
+      </div>
+
       <div class="card card--padded panel">
         <input type="file" id="file-input" data-file-input multiple hidden />
 
@@ -58,8 +69,8 @@ export function mountFileSelection({ files = [], onBack, onCreate }) {
           <span class="dropzone__icon"><i data-icon="upload" data-size="24"></i></span>
           <p class="dropzone__title">Drop files here</p>
           <p class="dropzone__hint">
-            or <span class="dropzone__browse">browse your device</span><br />
-            Any file type · up to 5 GB per file, 5 GB per transfer
+            or <span class="dropzone__browse">choose from your device</span><br />
+            Any file type · up to ${formatBytes(config.maxTotalBytes, { decimals: 0 })} per file
           </p>
         </div>
 
@@ -74,9 +85,28 @@ export function mountFileSelection({ files = [], onBack, onCreate }) {
             </div>
           </div>
           <ul class="file-list" data-file-list></ul>
-          <div class="selection-summary">
-            <span><strong data-total-size>0 B</strong> · <span data-total-count>0 files</span></span>
-            <span data-remaining></span>
+          <div class="limit-meter" data-meter data-over="false">
+            <div class="limit-meter__head">
+              <span class="code-label">Transfer size</span>
+              <span class="limit-meter__value tabular">
+                <strong data-total-size>0 B</strong> of <span data-limit></span>
+              </span>
+            </div>
+            <div
+              class="limit-meter__track"
+              data-meter-track
+              role="progressbar"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              aria-valuenow="0"
+              aria-label="Selected files against the transfer limit"
+            >
+              <span class="limit-meter__fill" data-meter-fill></span>
+            </div>
+            <div class="limit-meter__foot">
+              <span data-total-count>0 files</span>
+              <span data-remaining></span>
+            </div>
           </div>
         </div>
 
@@ -105,6 +135,10 @@ export function mountFileSelection({ files = [], onBack, onCreate }) {
   const totalSize = qs(element, "[data-total-size]");
   const totalCount = qs(element, "[data-total-count]");
   const remaining = qs(element, "[data-remaining]");
+  const limitNode = qs(element, "[data-limit]");
+  const meter = qs(element, "[data-meter]");
+  const meterFill = qs(element, "[data-meter-fill]");
+  const meterTrack = qs(element, "[data-meter-track]");
 
   const fileKey = (file) => `${file.name}|${file.size}|${file.lastModified}`;
 
@@ -159,6 +193,14 @@ export function mountFileSelection({ files = [], onBack, onCreate }) {
       left >= 0
         ? `${remainingLabel(left)} of ${limit} left`
         : `${formatBytes(-left)} over the ${limit} limit`;
+
+    // The meter is cumulative selection size against the same ceiling the
+    // validator enforces, so it can never disagree with a rejection.
+    limitNode.textContent = limit;
+    const usage = Math.min(1, bytes / config.maxTotalBytes);
+    meterFill.style.setProperty("--usage", String(usage));
+    meter.dataset.over = String(bytes > config.maxTotalBytes);
+    meterTrack.setAttribute("aria-valuenow", String(Math.round(usage * 100)));
   }
 
   /** Rounds gigabytes down so "4.9 GB left" never reads as a full "5 GB". */
@@ -311,10 +353,21 @@ export function mountFileSelection({ files = [], onBack, onCreate }) {
  *   code: string,
  *   receiveUrl: string,
  *   expiresAt: string|null,
- *   onCancel: () => void
+ *   onCancel: () => void,
+ *   inviteName?: string,
+ *   self?: object|null,
+ *   target?: object|null
  * }} options
  */
-export function mountSenderWaiting({ code, receiveUrl, expiresAt, onCancel }) {
+export function mountSenderWaiting({
+  code,
+  receiveUrl,
+  expiresAt,
+  onCancel,
+  inviteName = "",
+  self = null,
+  target = null,
+}) {
   const animation = new ConnectionAnimation({ role: "sender", state: "waiting" });
 
   const element = el(`
@@ -333,6 +386,26 @@ export function mountSenderWaiting({ code, receiveUrl, expiresAt, onCancel }) {
         <div class="screen-head">
           <h1 id="waiting-title">Share this code</h1>
           <p>The other device enters these six characters or scans the QR code to connect.</p>
+        </div>
+
+        <div class="identity-strip" data-waiting-identities>
+          <div class="identity-strip__side">
+            <div>
+              <span class="identity-strip__label">Sending from</span>
+              ${identityMarkup(self, { size: "sm", fallback: "This device" })}
+            </div>
+          </div>
+          <span class="identity-strip__arrow" aria-hidden="true">→</span>
+          <div class="identity-strip__side">
+            <div>
+              <span class="identity-strip__label">Sending to</span>
+              ${
+                target
+                  ? identityMarkup(target, { size: "sm" })
+                  : `<span class="device-identity__meta">Whoever enters the code</span>`
+              }
+            </div>
+          </div>
         </div>
 
         <div class="card pairing">
@@ -370,12 +443,19 @@ export function mountSenderWaiting({ code, receiveUrl, expiresAt, onCancel }) {
 
         <div data-animation></div>
 
-        <p class="stage-note">Keep this tab open while waiting — closing it cancels the transfer.</p>
+        <p class="stage-note" data-stage-note>
+          Keep this tab open while waiting — closing it cancels the transfer.
+        </p>
       </div>
     </section>
   `);
 
   qs(element, "[data-animation]").appendChild(animation.element);
+
+  if (inviteName) {
+    qs(element, "[data-stage-note]").textContent =
+      `Invite sent to ${inviteName}. They still have to approve the files — keep this tab open.`;
+  }
 
   /* QR code ---------------------------------------------------------------- */
   const qrBox = qs(element, "[data-qr]");

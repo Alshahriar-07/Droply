@@ -1,40 +1,33 @@
 /* ==========================================================================
-   Droply — responsive rules
-   Mobile-first widths checked at 360, 390, 430, 768, 1024, 1366 and 1920.
+   Droply — responsive refinements
+   Checked at 320, 375, 430, 768, 1024, 1366 and 1920 px.
+   Mobile-first structure: the layout is fluid, these rules adjust density.
    ========================================================================== */
 
 /* Large desktops -------------------------------------------------------- */
 @media (min-width: 1600px) {
   :root {
-    --shell-max: 1200px;
+    --shell-max: 1160px;
   }
 }
 
 /* Laptops / small desktops ---------------------------------------------- */
-@media (max-width: 1080px) {
+@media (max-width: 1040px) {
   .home {
-    grid-template-columns: minmax(0, 1fr) minmax(330px, 0.9fr);
-    gap: clamp(2rem, 5vw, 3.5rem);
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 0.92fr);
+    gap: clamp(1.75rem, 4vw, 3rem);
   }
 }
 
-@media (max-width: 920px) {
+@media (max-width: 900px) {
   .home {
     grid-template-columns: minmax(0, 1fr);
     gap: var(--space-8);
     padding-top: 0;
   }
 
-  .home__intro {
-    gap: var(--space-4);
-  }
-
   .hero__sub {
-    max-width: 52ch;
-  }
-
-  .home__panel {
-    max-width: none;
+    max-width: 56ch;
   }
 
   .steps {
@@ -51,10 +44,30 @@
   }
 }
 
-/* Tablets --------------------------------------------------------------- */
-@media (max-width: 768px) {
+/* Tablets: switch primary navigation to the tab bar --------------------- */
+@media (max-width: 780px) {
+  .site-nav {
+    display: none;
+  }
+
   .site-nav__link--optional {
     display: none;
+  }
+
+  .tabbar {
+    display: flex;
+  }
+
+  .app {
+    padding-bottom: calc(var(--tabbar-height) + env(safe-area-inset-bottom));
+  }
+
+  .main {
+    padding-bottom: var(--space-8);
+  }
+
+  .site-footer {
+    padding-bottom: var(--space-6);
   }
 
   .site-footer__inner {
@@ -80,8 +93,13 @@
   }
 
   .qr {
-    width: 132px;
+    width: 128px;
     flex: none;
+  }
+
+  .pairing-grid .qr {
+    width: 100%;
+    max-width: 200px;
   }
 
   .qr-caption {
@@ -97,35 +115,72 @@
     width: 100%;
     justify-content: space-between;
   }
+
+  .nearby-action {
+    bottom: calc(var(--tabbar-height) + 12px + env(safe-area-inset-bottom));
+  }
 }
 
 /* Large phones ---------------------------------------------------------- */
-@media (max-width: 600px) {
+@media (max-width: 620px) {
   .screen-head {
     margin-bottom: var(--space-5);
   }
 
-  .screen-head h1 {
-    font-size: 1.375rem;
+  /* Pairing stacks: sharing your code and entering theirs are separate steps
+     on a phone, not two cramped columns. */
+  .pairing-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-5);
   }
 
-  .hero__title {
-    font-size: clamp(2.375rem, 1.4rem + 8vw, 3.25rem);
+  .pairing-grid .qr {
+    max-width: 190px;
+    margin: 0 auto;
+  }
+
+  .pairing-grid__code {
+    align-items: center;
+    text-align: center;
+  }
+
+  .pairing-grid__code .code-display {
+    justify-content: center;
+  }
+
+  .pairing-grid__code .btn-group {
+    justify-content: center;
+  }
+
+  .pairing-grid__scan {
+    border-top: 1px solid var(--border-soft);
+    padding-top: var(--space-5);
+  }
+
+  .pairing-grid__scan .pairing-paste {
+    margin-top: 0;
+  }
+
+  .screen-head h1 {
+    font-size: var(--fs-xl);
+  }
+
+  .home__panel {
+    border-radius: var(--radius-md);
   }
 
   .action-card {
-    grid-template-columns: auto minmax(0, 1fr) auto;
-    gap: var(--space-3);
-    padding: var(--space-4);
+    padding: var(--space-3);
   }
 
-  .action-card__index {
-    display: none;
+  .hero__meta {
+    gap: 6px;
   }
 
-  .action-card__icon {
-    width: 36px;
-    height: 36px;
+  .meta-chip {
+    height: 26px;
+    font-size: var(--fs-micro);
+    padding: 0 8px;
   }
 
   .steps {
@@ -142,10 +197,6 @@
     padding-left: var(--space-3);
   }
 
-  .step__body p {
-    max-width: 46ch;
-  }
-
   .card--padded,
   .code-panel,
   .consent,
@@ -159,49 +210,39 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .choice {
+    align-items: center;
+    padding: var(--space-3);
+  }
+
   .code-slots {
     gap: 6px;
   }
 
   .code-slot {
-    height: 54px;
+    height: 52px;
     font-size: 1.25rem;
-    border-radius: var(--radius-xs);
   }
 
   .code-help {
     flex-direction: column;
     align-items: flex-start;
-    gap: var(--space-1);
+    gap: 2px;
   }
 
-  .stats {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .stat {
-    padding: var(--space-3);
-  }
-
-  .stat__label {
-    font-size: 10px;
-    letter-spacing: 0.08em;
-  }
-
-  .stat__value {
-    font-size: var(--fs-sm);
-  }
-
+  .stats,
   .result__stats {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
+  .stat,
   .result__stat {
-    padding: var(--space-3);
+    padding: var(--space-3) var(--space-2);
   }
 
-  .result__stat dd {
-    font-size: var(--fs-base);
+  .stat__label {
+    font-size: 10px;
+    letter-spacing: 0.06em;
   }
 
   .result .btn--lg {
@@ -214,6 +255,16 @@
 
   .overall__value {
     font-size: 2.25rem;
+  }
+
+  .transfer-current {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .transfer-current__name {
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 
   .download-row {
@@ -234,23 +285,70 @@
     gap: var(--space-2);
   }
 
+  /* Toasts sit above the tab bar, not under it. */
   .toast-stack {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    align-items: center;
+    bottom: calc(var(--tabbar-height) + 12px + env(safe-area-inset-bottom));
+    width: calc(100% - 2rem);
+  }
+
+  .error-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .error-actions .btn {
+    width: 100%;
+  }
+
+  .error-details dl > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+
+  .error-back {
+    align-self: stretch;
+  }
+
+  .sheet {
     width: calc(100% - 1.5rem);
   }
 }
 
-/* Small phones (360–430) ------------------------------------------------ */
+/* Small phones (320–430) ------------------------------------------------ */
 @media (max-width: 430px) {
   :root {
-    --shell-pad: 1.125rem;
+    --shell-pad: 1rem;
+    --fs-base: 0.9375rem;
+  }
+
+  .brand__name {
+    font-size: 1rem;
   }
 
   .site-header__inner {
     gap: var(--space-2);
   }
 
-  .site-nav__link {
-    padding: 0 var(--space-2);
+  .main {
+    padding-top: var(--space-5);
+  }
+
+  .action-card__icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .home-links {
+    grid-template-columns: minmax(0, 1fr);
+    padding-top: var(--space-2);
+  }
+
+  .home-link {
+    padding: 6px var(--space-2);
   }
 
   .btn--lg {
@@ -263,7 +361,7 @@
   }
 
   .qr {
-    width: 168px;
+    width: 158px;
   }
 
   .qr-caption {
@@ -271,16 +369,16 @@
   }
 
   .code-display__value {
-    letter-spacing: 0.12em;
+    letter-spacing: 0.1em;
   }
 
   .code-slot {
-    height: 48px;
+    height: 46px;
     font-size: 1.125rem;
   }
 
   .consent__files {
-    padding: 0 var(--space-2);
+    padding: 0 var(--space-1);
   }
 
   .file-row__icon {
@@ -288,15 +386,57 @@
     height: 30px;
   }
 
-  .sheet {
-    width: calc(100% - 1.5rem);
+  .stats,
+  .result__stats {
+    border-radius: var(--radius-xs);
+  }
+
+  .stat__value {
+    font-size: var(--fs-xs);
+  }
+
+  .saved-card {
+    flex-wrap: wrap;
+  }
+
+  .saved-card__actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+/* 320px: tighten the last few gaps ------------------------------------- */
+@media (max-width: 360px) {
+  :root {
+    --shell-pad: 0.875rem;
+  }
+
+  .hero__title {
+    font-size: 2.125rem;
+  }
+
+  .code-slot {
+    height: 42px;
+    font-size: 1rem;
+  }
+
+  .btn {
+    padding: 0 12px;
+  }
+
+  .file-row {
+    gap: var(--space-2);
+  }
+
+  .pill {
+    font-size: 11px;
   }
 }
 
 /* Landscape phones ------------------------------------------------------ */
 @media (max-height: 520px) and (orientation: landscape) {
   .main {
-    padding-top: var(--space-5);
+    padding-top: var(--space-4);
   }
 
   .intro__inner {
@@ -317,14 +457,11 @@
 @media (hover: none) {
   .action-card:hover {
     background: var(--surface);
-  }
-
-  .action-card:hover::before {
-    transform: scaleY(0);
+    border-color: var(--border);
   }
 
   .action-card:hover .action-card__icon {
-    border-color: var(--border);
+    transform: none;
   }
 
   .action-card:hover .action-card__go {
@@ -339,17 +476,27 @@
 
   .dropzone:hover {
     border-color: var(--border-strong);
-    background: var(--paper);
+    background: var(--surface);
+  }
+
+  .device-card:hover {
+    background: transparent;
+  }
+
+  .saved-card__actions .btn--primary:hover {
+    background: var(--surface);
+    border-color: var(--border-strong);
+    color: var(--text);
   }
 }
 
 /* Keyboard-open / very short viewports ---------------------------------- */
-@media (max-width: 600px) and (max-height: 560px) {
+@media (max-width: 620px) and (max-height: 560px) {
   .code-panel {
     gap: var(--space-3);
   }
 
   .code-slot {
-    height: 46px;
+    height: 44px;
   }
 }

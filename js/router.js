@@ -53,7 +53,8 @@ export function navigate(name, params = {}, options = {}) {
   currentName = name;
 
   document.title =
-    view?.title ? `${view.title} · Droply` : "Droply — Move files. Not limits.";
+    view?.title ? `${view.title} · Droply` : "Droply — Send files. Not limits.";
+  syncActiveNav(name);
 
   // Keep the focus context sane for keyboard and screen-reader users: after an
   // in-app navigation the new screen is announced, but the initial render
@@ -64,6 +65,18 @@ export function navigate(name, params = {}, options = {}) {
   }
   hasRendered = true;
   return true;
+}
+
+/**
+ * Keeps the header navigation and the mobile tab bar in sync with the screen
+ * that is actually rendered, including routes that are not destinations.
+ * @param {string} name
+ */
+function syncActiveNav(name) {
+  for (const link of document.querySelectorAll("[data-route]")) {
+    if (link.dataset.route === name) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
+  }
 }
 
 /** Clears any rendered screen (used on fatal startup errors). */

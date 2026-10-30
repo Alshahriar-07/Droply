@@ -39,8 +39,19 @@ import {
 } from "./core/errors.js";
 import { errorToast, isPageError, mountErrorPage } from "./ui/error-view.js";
 import { CONTROL } from "./core/transfer-protocol.js";
-import { extractRoomCode, isProbablySdp } from "./utils/validation.js";
+import { extractRoomCode, isProbablySdp, isValidCode } from "./utils/validation.js";
 import { formatBytes } from "./utils/format-bytes.js";
+import { mountNearby } from "./ui/nearby-view.js";
+import { mountSavedDevices } from "./ui/saved-devices-view.js";
+import { mountPairing } from "./ui/pairing-view.js";
+import { mountInvite } from "./ui/invite-view.js";
+import { mountProfile } from "./ui/profile-view.js";
+import { PresenceClient } from "./core/presence-client.js";
+import { createIndexedDbStore } from "./core/storage/store.js";
+import { loadDeviceIdentity } from "./core/device-identity.js";
+import { parseDeviceMetadata } from "./core/device-profile.js";
+import { SavedDevices } from "./core/saved-devices.js";
+import { createInvite, isInviteShape, isValidPairingCode, normalizePairingCode, verifyInvite } from "./core/pairing.js";
 
 /* --------------------------------------------------------------------------
    Runtime state (never persisted)
@@ -85,6 +96,40 @@ const app = {
   graceTimer: 0,
   unloadHandler: null,
   scope: new ResourceScope(),
+
+  /* Saved devices / nearby (browser-local, never sent to a server except the
+     opt-in presence record itself). */
+  /** @type {import("./core/storage/store.js").KeyValueStore|null} */
+  storage: null,
+  /** @type {SavedDevices|null} */
+  savedDevices: null,
+  /** @type {Awaited<ReturnType<typeof loadDeviceIdentity>>|null} */
+  identity: null,
+  /** @type {Promise<any>|null} */
+  identityPromise: null,
+  /** @type {Array<any>} */
+  savedDeviceCache: [],
+  /** @type {PresenceClient|null} */
+  presence: null,
+  presencePhase: "offline",
+  /** @type {{render:Function}|null} */
+  nearbyView: null,
+  /** @type {{render:Function}|null} */
+  savedView: null,
+  /** @type {object|null} */
+  pairingView: null,
+  /** @type {object|null} */
+  inviteView: null,
+  /** @type {{kind:"nearby"|"saved", peerId?:string, deviceId:string, name:string}|null} */
+  pendingTarget: null,
+  /** @type {object|null} */
+  pendingInvite: null,
+  /** @type {{deviceId:string, name:string}|null} */
+  senderTarget: null,
+  connectedDeviceId: null,
+  /** Public profile of the device on the other end of the live transfer. */
+  /** @type {object|null} */
+  peerIdentity: null,
 };
 
 function go(name, params = {}) {
@@ -172,14 +217,351 @@ function resetRuntime({ keepReceiver = false } = {}) {
   app.receivedFiles = [];
   app.receivedBytes = 0;
   app.receivedElapsed = 0;
+  app.peerIdentity = null;
   app.scope.dispose();
   app.scope = new ResourceScope();
 }
 
 function goHome() {
+  stopPresence();
+  app.connectedDeviceId = null;
+  app.pendingTarget = null;
+  app.pendingInvite = null;
   resetRuntime();
   resetSession();
   go("home");
+}
+
+/* --------------------------------------------------------------------------
+   Saved devices, pairing and nearby presence
+
+   Presence is opt-in and relayed only through the Droply Worker. It carries
+   device metadata and signed invites — never file bytes, room tokens or IP
+   addresses. Leaving Droply stops it (see the pagehide handler below).
+   -------------------------------------------------------------------------- */
+
+function onlineDeviceIds() {
+  return (app.presence?.peers ?? []).map((peer) => peer.deviceId).filter(Boolean);
+}
+
+async function ensureIdentity() {
+  if (app.identity) return app.identity;
+  if (!app.storage) app.storage = createIndexedDbStore();
+  if (!app.savedDevices) app.savedDevices = new SavedDevices({ store: app.storage });
+  if (!app.identityPromise) {
+    app.identityPromise = loadDeviceIdentity({ store: app.storage }).catch((error) => {
+      app.identityPromise = null;
+      throw error;
+    });
+  }
+  app.identity = await app.identityPromise;
+  return app.identity;
+}
+
+/** The public profile shown in this tab's own screens. */
+function selfIdentity() {
+  return app.identity?.profile ?? null;
+}
+
+function refreshSavedView(patch = {}) {
+  if (!app.savedView) return;
+  app.savedView.render({
+    devices: app.savedDeviceCache,
+    online: onlineDeviceIds(),
+    reachable: Boolean(app.presence && !app.presence.stopped),
+    presencePhase: app.presencePhase,
+    ...patch,
+  });
+}
+
+async function loadSavedDevices() {
+  try {
+    await ensureIdentity();
+    app.savedDeviceCache = await app.savedDevices.list();
+  } catch (error) {
+    app.savedDeviceCache = [];
+    refreshSavedView({
+      error: error?.message ?? "Saved devices aren't available in this browser.",
+    });
+    return [];
+  }
+  refreshSavedView();
+  return app.savedDeviceCache;
+}
+
+function nearbyPhaseFor(phase) {
+  return ["starting", "online", "reconnecting", "offline"].includes(phase) ? phase : "idle";
+}
+
+/** Lazily creates the single presence session and wires its events. */
+async function ensurePresence() {
+  if (app.presence) return app.presence;
+  const identity = await ensureIdentity();
+  const client = new PresenceClient({ identity });
+  app.presence = client;
+
+  client.addEventListener("status", (event) => {
+    if (app.presence !== client) return;
+    app.presencePhase = event.detail.phase;
+    app.nearbyView?.render({ phase: nearbyPhaseFor(event.detail.phase) });
+    refreshSavedView();
+  });
+
+  client.addEventListener("peers", (event) => {
+    if (app.presence !== client) return;
+    app.nearbyView?.render({
+      phase: nearbyPhaseFor(app.presencePhase),
+      peers: event.detail.peers,
+    });
+    refreshSavedView();
+  });
+
+  client.addEventListener("invite", (event) => {
+    if (app.presence !== client) return;
+    void handlePresenceInvite(event.detail);
+  });
+
+  client.addEventListener("invite-sent", (event) => {
+    if (app.presence !== client) return;
+    if (!event.detail.delivered) {
+      toast("That device isn't reachable. Share the transfer code instead.", { tone: "danger" });
+    }
+  });
+
+  client.addEventListener("invite-response", (event) => {
+    if (app.presence !== client) return;
+    if (!event.detail.accepted) toast("The other device declined the request.");
+  });
+
+  client.addEventListener("error", (event) => {
+    if (app.presence !== client) return;
+    app.nearbyView?.render({
+      phase: nearbyPhaseFor(app.presencePhase),
+      error: event.detail?.error?.message,
+    });
+  });
+
+  return client;
+}
+
+function stopPresence() {
+  if (!app.presence) return;
+  app.presence.stop();
+  app.presence = null;
+  app.presencePhase = "offline";
+}
+
+async function startNearbyDiscovery() {
+  app.nearbyView?.render({ phase: "starting" });
+  try {
+    const client = await ensurePresence();
+    await client.start();
+    if (client.stopped || !client.isOnline) {
+      app.presencePhase = "offline";
+      app.nearbyView?.render({ phase: "offline", peers: [] });
+      return;
+    }
+    app.presencePhase = "online";
+    app.nearbyView?.render({
+      phase: "online",
+      peers: client.peers,
+      available: client.available,
+    });
+    refreshSavedView();
+  } catch (error) {
+    app.presencePhase = "offline";
+    app.nearbyView?.render({
+      phase: "offline",
+      peers: [],
+      error: error?.message ?? "Nearby discovery didn't start.",
+    });
+  }
+}
+
+function stopNearbyDiscovery() {
+  stopPresence();
+  app.nearbyView?.render({ phase: "offline", peers: [] });
+  refreshSavedView();
+}
+
+async function setReachable(enabled) {
+  if (!enabled) {
+    stopPresence();
+    refreshSavedView({ notice: "Reachability is off. Saved devices can't reach you until you turn it on again." });
+    return;
+  }
+  try {
+    const client = await ensurePresence();
+    await client.start();
+    if (client.stopped || !client.isOnline) {
+      refreshSavedView({
+        reachable: false,
+        error: "Reachability did not start. Try again.",
+      });
+      return;
+    }
+    refreshSavedView({
+      reachable: true,
+      presencePhase: app.presencePhase,
+      notice: "This device is reachable by your saved devices until you leave Droply or switch it off.",
+    });
+    app.nearbyView?.render({ phase: nearbyPhaseFor(app.presencePhase) });
+  } catch (error) {
+    refreshSavedView({
+      reachable: false,
+      error: error?.message ?? "This device could not be made reachable.",
+    });
+  }
+}
+
+/** Sends a signed invite for a freshly created room to one peer. */
+async function deliverInvite(target, code) {
+  if (!target) return;
+  try {
+    let client = app.presence;
+    if (!client && target.kind === "saved") {
+      client = await ensurePresence();
+      await client.start();
+    }
+    const peerId =
+      target.peerId ||
+      client?.peers.find((peer) => peer.deviceId === target.deviceId)?.peerId ||
+      null;
+    if (!peerId || !client?.isOnline) {
+      toast(`${target.name} isn't reachable right now. Share the code instead.`, {
+        tone: "danger",
+      });
+      return;
+    }
+    const identity = await ensureIdentity();
+    const invite = await createInvite(identity, { to: peerId, code });
+    if (client.sendInvite(peerId, invite)) {
+      app.connectedDeviceId = target.deviceId;
+      toast(`Invite sent to ${target.name}.`);
+    }
+  } catch (error) {
+    toast(error?.message ?? "The invite could not be sent.");
+  }
+}
+
+async function handlePresenceInvite({ from, invite }) {
+  if (!from || typeof from.peerId !== "string") return;
+  if (!isInviteShape(invite)) return;
+
+  // A live transfer always wins over a new request.
+  if (isActive() || app.receiver) {
+    app.presence?.respondInvite(from.peerId, false);
+    toast("You're already in a transfer, so the request was declined.", { tone: "danger" });
+    return;
+  }
+
+  let saved = null;
+  try {
+    saved = (await app.savedDevices?.find(invite.fromDeviceId)) ?? null;
+  } catch {
+    saved = null;
+  }
+
+  let verified = false;
+  if (saved) {
+    try {
+      verified = await verifyInvite(saved.publicKey, invite);
+    } catch {
+      verified = false;
+    }
+    if (!verified) {
+      // A request that claims a saved identity but fails its signature is
+      // dropped: it must never appear as that trusted device.
+      app.presence?.respondInvite(from.peerId, false);
+      toast("A nearby request failed identity verification and was declined.", { tone: "danger" });
+      return;
+    }
+  }
+
+  // The invite's display fields are inside the signature, so a verified
+  // request may also refresh the saved contact's name and avatar.
+  let display = saved;
+  if (saved && verified) {
+    try {
+      const updated = await app.savedDevices.updateIdentity(saved.deviceId, {
+        name: invite.fromName,
+        avatar: invite.fromAvatar,
+        deviceType: invite.fromDeviceType,
+        platform: invite.fromPlatform,
+        browser: invite.fromBrowser,
+      });
+      if (updated) {
+        display = updated;
+        app.savedDeviceCache = await app.savedDevices.list();
+        refreshSavedView();
+      }
+    } catch {
+      /* the stored copy stays as-is if it cannot be refreshed */
+    }
+  }
+
+  app.pendingInvite = {
+    invite,
+    fromPeerId: from.peerId,
+    deviceId: saved?.deviceId ?? invite.fromDeviceId,
+    verified,
+    name: display?.name ?? from.name ?? invite.fromName,
+    deviceType: display?.deviceType ?? from.deviceType ?? "",
+    platform: display?.platform ?? from.platform ?? "",
+    browser: display?.browser ?? from.browser ?? "",
+    avatar: display?.avatar ?? from.avatar ?? invite.fromAvatar ?? "generic",
+    origin: saved ? "saved" : "nearby",
+  };
+  go("invite", app.pendingInvite);
+}
+
+function markConnectedDeviceSeen() {
+  if (!app.connectedDeviceId || !app.savedDevices) return;
+  app.savedDevices
+    .markSeen(app.connectedDeviceId)
+    .then(() => loadSavedDevices())
+    .catch(() => {});
+}
+
+async function sendToSavedDevice(deviceId) {
+  const devices = await loadSavedDevices();
+  const device = devices.find((item) => item.deviceId === deviceId);
+  if (!device) {
+    refreshSavedView({ error: "That saved device no longer exists." });
+    return;
+  }
+  app.pendingTarget = {
+    kind: "saved",
+    deviceId: device.deviceId,
+    name: device.name,
+    deviceType: device.deviceType,
+    platform: device.platform,
+    browser: device.browser,
+    avatar: device.avatar,
+  };
+  go("send");
+}
+
+async function removeSavedDevice(id) {
+  try {
+    await ensureIdentity();
+    await app.savedDevices.remove(id);
+    app.savedDeviceCache = await app.savedDevices.list();
+    refreshSavedView({ notice: "Device removed from this browser." });
+  } catch (error) {
+    refreshSavedView({ error: error?.message ?? "That device could not be removed." });
+  }
+}
+
+async function renameSavedDevice(id, name) {
+  try {
+    await ensureIdentity();
+    await app.savedDevices.rename(id, name);
+    app.savedDeviceCache = await app.savedDevices.list();
+    refreshSavedView({ notice: "Device renamed." });
+  } catch (error) {
+    refreshSavedView({ error: error?.message ?? "That device could not be renamed." });
+  }
 }
 
 /* --------------------------------------------------------------------------
@@ -607,12 +989,16 @@ function bindChannel(channel) {
   });
 }
 
-function onChannelOpen() {
+async function onChannelOpen() {
   clearTimer("connectTimer");
   app.animation?.setState("connected");
   setSession({ phase: "connected" });
-  if (app.role === "sender") onSenderChannelOpen();
-  else onReceiverChannelOpen();
+  try {
+    if (app.role === "sender") await onSenderChannelOpen();
+    else await onReceiverChannelOpen();
+  } catch (error) {
+    failTransfer("transfer/failed", { detail: safeDetail(error) });
+  }
 }
 
 function onChannelClose() {
@@ -628,8 +1014,13 @@ function onChannelClose() {
   }, 2500);
 }
 
-function onSenderChannelOpen() {
-  const sender = new FileSender({ transport: app.transport, files: app.senderFiles });
+async function onSenderChannelOpen() {
+  const identity = await ensureIdentity().catch(() => null);
+  const sender = new FileSender({
+    transport: app.transport,
+    files: app.senderFiles,
+    identity,
+  });
   app.sender = sender;
   app.senderBytes = sender.totalBytes;
 
@@ -649,7 +1040,12 @@ function onSenderChannelOpen() {
     return;
   }
 
-  go("transfer", { mode: "send", files: app.senderFiles });
+  go("transfer", {
+    mode: "send",
+    files: app.senderFiles,
+    local: identity?.profile ?? null,
+    peer: app.peerIdentity ?? app.senderTarget,
+  });
   app.transferView?.setStatus({ label: "Waiting for approval", tone: "blue" });
   app.transferView?.update({
     ratio: 0,
@@ -701,6 +1097,7 @@ function beginSending() {
 function onDeliveryConfirmed() {
   if (app.role !== "sender" || app.deliveryConfirmed) return;
   app.deliveryConfirmed = true;
+  markConnectedDeviceSeen();
   clearTimer("confirmTimer");
   clearTimer("graceTimer");
 
@@ -724,18 +1121,32 @@ function onDeliveryConfirmed() {
     files,
     totalBytes: app.senderBytes,
     elapsed,
+    local: selfIdentity(),
+    peer: app.peerIdentity ?? app.senderTarget,
   });
 }
 
-function onReceiverChannelOpen() {
+async function onReceiverChannelOpen() {
+  const identity = await ensureIdentity().catch(() => null);
   const receiver = new FileReceiver({ transport: app.transport });
   app.receiver = receiver;
 
+  // Tell the sender who is receiving as soon as the encrypted channel opens.
+  if (identity) {
+    try {
+      app.transport?.sendControl({ t: CONTROL.HELLO, peer: identity.profile });
+    } catch {
+      /* the manifest still carries the sender's identity */
+    }
+  }
+
   receiver.addEventListener("manifest", (event) => {
     app.animation?.setState("connected");
+    app.peerIdentity = event.detail.peer ?? null;
     go("incoming", {
       files: event.detail.files,
       totalBytes: event.detail.totalBytes,
+      peer: app.peerIdentity,
     });
   });
 
@@ -767,6 +1178,7 @@ function onReceiverChannelOpen() {
 
 function onReceiverComplete(event) {
   const { files, totalBytes, elapsed } = event.detail;
+  markConnectedDeviceSeen();
   app.receivedFiles = files;
   app.receivedBytes = totalBytes;
   app.receivedElapsed = elapsed;
@@ -779,13 +1191,29 @@ function onReceiverComplete(event) {
     files,
     totalBytes,
     elapsed,
+    local: selfIdentity(),
+    peer: app.peerIdentity,
   });
+}
+
+/** Applies a validated peer profile from the encrypted control channel. */
+function acceptPeerIdentity(value) {
+  const peer = parseDeviceMetadata(value);
+  if (!peer) return null;
+  app.peerIdentity = peer;
+  app.transferView?.setIdentities?.({ peer });
+  return peer;
 }
 
 /** @param {Record<string, any>} message */
 function onChannelControl(message) {
-  // On the receiving side every control frame belongs to the transfer engine:
-  // manifest, file boundaries, completion, cancellation and peer errors.
+  if (message.t === CONTROL.HELLO) {
+    acceptPeerIdentity(message.peer);
+    return;
+  }
+
+  // On the receiving side every other control frame belongs to the transfer
+  // engine: manifest, file boundaries, completion, cancellation and errors.
   if (app.role === "receiver") {
     app.receiver?.handleControl(message);
     return;
@@ -824,6 +1252,8 @@ function onChannelControl(message) {
  */
 async function createTransfer(files) {
   resetRuntime();
+  app.senderTarget = app.pendingTarget ?? null;
+  app.pendingTarget = null;
   app.senderFiles = files;
   setSession({ role: "sender", files, phase: "waiting" });
 
@@ -850,9 +1280,11 @@ async function createTransfer(files) {
       code: room.code,
       receiveUrl: receiveLink(room.code),
       expiresAt: room.expiresAt,
+      inviteName: app.senderTarget?.name ?? "",
     });
     addUnloadGuard();
     signaling.connect({ code: room.code, token: room.token });
+    if (app.senderTarget) void deliverInvite(app.senderTarget, room.code);
   } catch (error) {
     clearTimer("readyTimer");
     if (session.phase !== "failed") {
@@ -963,15 +1395,141 @@ function registerRoutes() {
     mountHome({
       onSend: () => {
         app.senderFiles = [];
+        app.pendingTarget = null;
         go("send");
       },
       onReceive: () => go("receive"),
+      onNearby: () => go("nearby"),
+      onSaved: () => go("saved"),
     }),
   );
+
+  registerRoute("nearby", () => {
+    const view = mountNearby({
+      onBack: goHome,
+      onStart: () => void startNearbyDiscovery(),
+      onStop: stopNearbyDiscovery,
+      onSend: (peerId) => {
+        const peer = app.presence?.peers.find((item) => item.peerId === peerId);
+        if (!peer) {
+          toast("That device is no longer nearby.", { tone: "danger" });
+          return;
+        }
+        app.pendingTarget = {
+          kind: "nearby",
+          peerId: peer.peerId,
+          deviceId: peer.deviceId,
+          name: peer.name,
+          deviceType: peer.deviceType,
+          platform: peer.platform,
+          browser: peer.browser,
+          avatar: peer.avatar,
+        };
+        go("send");
+      },
+      onAvailableChange: (available) => {
+        app.presence?.setAvailable(available);
+        view.render({ available });
+      },
+    });
+    app.nearbyView = view;
+    const scanning = Boolean(app.presence && !app.presence.stopped);
+    view.render({
+      phase: scanning ? nearbyPhaseFor(app.presencePhase) : "idle",
+      peers: app.presence?.peers ?? [],
+      available: app.presence?.available ?? true,
+    });
+    return view;
+  });
+
+  registerRoute("saved", () => {
+    const view = mountSavedDevices({
+      onBack: goHome,
+      onPair: () => go("pair"),
+      onSend: (deviceId) => void sendToSavedDevice(deviceId),
+      onRemove: (id) => void removeSavedDevice(id),
+      onRename: (id, name) => void renameSavedDevice(id, name),
+      onReachableChange: (enabled) => void setReachable(enabled),
+    });
+    app.savedView = view;
+    view.render({
+      devices: app.savedDeviceCache,
+      online: onlineDeviceIds(),
+      reachable: Boolean(app.presence && !app.presence.stopped),
+      presencePhase: app.presencePhase,
+    });
+    void loadSavedDevices();
+    return view;
+  });
+
+  registerRoute("pair", (params) => {
+    const view = mountPairing({
+      identityPromise: ensureIdentity(),
+      initialCode: String(params.code ?? ""),
+      onBack: () => go("saved"),
+      onSave: async (contact) => {
+        await ensureIdentity();
+        const saved = await app.savedDevices.save(contact);
+        app.savedDeviceCache = await app.savedDevices.list();
+        return saved;
+      },
+    });
+    app.pairingView = view;
+    return view;
+  });
+
+  registerRoute("invite", (params) => {
+    const pending = app.pendingInvite ?? {};
+    const view = mountInvite({
+      name: String(params.name ?? "Unknown device"),
+      deviceType: String(params.deviceType ?? ""),
+      avatar: String(params.avatar ?? "generic"),
+      verified: Boolean(params.verified),
+      reason: params.verified ? "Saved device" : "Not saved on this browser",
+      onAccept: () => {
+        const code = String(params.invite?.code ?? "");
+        app.presence?.respondInvite(String(params.fromPeerId ?? ""), true);
+        if (!isValidCode(code)) {
+          toast("That transfer code is no longer valid.", { tone: "danger" });
+          return;
+        }
+        app.connectedDeviceId = String(params.deviceId ?? "") || null;
+        app.pendingInvite = null;
+        void joinRoom(code);
+      },
+      onReject: () => {
+        app.presence?.respondInvite(String(params.fromPeerId ?? ""), false);
+        app.pendingInvite = null;
+        go(params.origin === "saved" ? "saved" : "nearby");
+      },
+    });
+    app.inviteView = view;
+    void pending;
+    return view;
+  });
+
+  registerRoute("profile", () => {
+    const view = mountProfile({
+      identityPromise: ensureIdentity(),
+      onBack: goHome,
+      onUpdate: async (patch) => {
+        const identity = await ensureIdentity();
+        await identity.updateProfile(patch);
+        if (app.presence && !app.presence.stopped) {
+          await app.presence.refreshIdentity();
+        }
+        refreshSavedView();
+        toast("Device profile updated.", { tone: "success" });
+        return identity;
+      },
+    });
+    return view;
+  });
 
   registerRoute("send", (params) => {
     const view = mountFileSelection({
       files: params.files ?? app.senderFiles,
+      self: selfIdentity(),
       onBack: goHome,
       onCreate: (files) => {
         app.senderFiles = files;
@@ -989,6 +1547,8 @@ function registerRoutes() {
       // Numbers are epoch milliseconds; strings are ISO timestamps. Neither
       // may be stringified here or the countdown breaks.
       expiresAt: params.expiresAt ?? null,
+      self: selfIdentity(),
+      target: app.senderTarget,
       onCancel: cancelTransfer,
     });
     app.animation = view.animation;
@@ -1054,13 +1614,19 @@ function registerRoutes() {
     mountIncomingTransfer({
       files: params.files ?? [],
       totalBytes: Number(params.totalBytes) || 0,
+      peer: params.peer ?? app.peerIdentity,
       onAccept: () => {
         if (!app.receiver || app.receiver.state !== "awaiting-consent") return;
         try {
           app.receiver.accept();
           setSession({ phase: "transferring" });
           app.transferStartedAt = performance.now();
-          go("transfer", { mode: "receive", files: params.files ?? [] });
+          go("transfer", {
+            mode: "receive",
+            files: params.files ?? [],
+            local: selfIdentity(),
+            peer: app.peerIdentity,
+          });
           app.transferView?.setStatus({ label: "Receiving", tone: "blue" });
           if (app.receiver.receivedBytes > 0) {
             app.transferView?.update({
@@ -1098,6 +1664,8 @@ function registerRoutes() {
     const view = mountTransfer({
       mode: params.mode === "receive" ? "receive" : "send",
       files: params.files ?? [],
+      local: params.local ?? selfIdentity(),
+      peer: params.peer ?? app.peerIdentity,
       onCancel: cancelTransfer,
     });
     app.transferView = view;
@@ -1110,6 +1678,8 @@ function registerRoutes() {
       files: params.files ?? [],
       totalBytes: Number(params.totalBytes) || 0,
       elapsedSeconds: params.elapsed,
+      local: params.local ?? selfIdentity(),
+      peer: params.peer ?? app.peerIdentity,
       onDone: goHome,
     }),
   );
@@ -1132,6 +1702,18 @@ function parseDeepLink() {
   const hash = window.location.hash || "";
   const search = new URLSearchParams(window.location.search);
   let code = null;
+
+  // A pairing QR carries `#pair=CODE`; the code is prefilled, never auto-saved.
+  const pairMatch = hash.match(/^#pair=([A-Za-z0-9-]{1,12})$/i);
+  if (pairMatch) {
+    const pairingCode = normalizePairingCode(pairMatch[1]);
+    history.replaceState(null, "", window.location.pathname);
+    if (isValidPairingCode(pairingCode)) {
+      go("pair", { code: pairingCode });
+      return true;
+    }
+    return false;
+  }
 
   // A bare receive link (shared by hand, without a code) is still useful:
   // it opens the receive screen instead of dropping the visitor on home.
@@ -1166,6 +1748,21 @@ function showUnsupportedBrowser() {
 
 function wireGlobalUi() {
   bindInfoDialogs();
+
+  for (const trigger of document.querySelectorAll("[data-route]")) {
+    trigger.addEventListener("click", () => {
+      const route = trigger.dataset.route;
+      if (!route) return;
+      if (isActive()) {
+        toast("Finish or cancel the active transfer first.");
+        return;
+      }
+      go(route);
+    });
+  }
+
+  // Closing or hiding the tab must never leave a presence record behind.
+  window.addEventListener("pagehide", () => app.presence?.stop());
 
   const brand = document.querySelector(".brand");
   brand?.addEventListener("click", (event) => {
@@ -1250,6 +1847,12 @@ function boot() {
     showUnsupportedBrowser();
     return;
   }
+
+  // Every installation gets a profile on first open, not only when a saved
+  // device or pairing screen is visited.
+  void ensureIdentity().catch((error) => {
+    console.warn("[droply] device profile unavailable", error?.message ?? error);
+  });
 
   if (!parseDeepLink()) {
     go("home");

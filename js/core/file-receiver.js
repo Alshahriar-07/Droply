@@ -120,7 +120,7 @@ export class FileReceiver extends EventTarget {
     if (this.state !== "awaiting-manifest") {
       throw new ProtocolError("The sender sent a second manifest.");
     }
-    const { files, totalBytes } = parseManifest(message);
+    const { files, totalBytes, peer } = parseManifest(message);
     this.entries = files.map((file) => ({
       ...file,
       parts: [],
@@ -137,6 +137,7 @@ export class FileReceiver extends EventTarget {
         detail: {
           files: files.map(({ id, name, size, type }) => ({ id, name, size, type })),
           totalBytes,
+          peer,
         },
       }),
     );

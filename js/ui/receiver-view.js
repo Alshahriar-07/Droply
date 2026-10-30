@@ -1,8 +1,10 @@
 /** Receiver screens: choice, code entry and incoming-transfer consent. */
 
 import { el, escapeHtml, fileRowMarkup, iconsIn, qs } from "./common.js";
+import { deviceAvatarMarkup } from "./device-avatar.js";
+import { formatDeviceSubtitle } from "../core/device-profile.js";
 import { formatBytes, formatFileCount } from "../utils/format-bytes.js";
-import { isValidCode, normalizeCode } from "../utils/validation.js";
+import { extractRoomCode, isValidCode, normalizeCode } from "../utils/validation.js";
 import { describeError } from "../core/errors.js";
 
 /* --------------------------------------------------------------------------
@@ -113,7 +115,7 @@ export function mountCodeEntry({ initialCode = "", onBack, onSubmit, onScanInste
           </div>
 
           <div class="code-help">
-            <span>Codes never include O, 0, I or 1.</span>
+            <span>Paste a code or invite link — no O, 0, I or 1 in codes.</span>
             <span class="tabular" data-length>0 / 6</span>
           </div>
 
@@ -209,7 +211,8 @@ export function mountCodeEntry({ initialCode = "", onBack, onSubmit, onScanInste
   input.addEventListener("paste", (event) => {
     event.preventDefault();
     const text = event.clipboardData?.getData("text") ?? "";
-    input.value = normalizeCode(text);
+    // A pasted invite link carries the code after #/receive; accept both.
+    input.value = normalizeCode(extractRoomCode(text) || text);
     clearError();
     render();
   });
@@ -258,11 +261,12 @@ export function mountCodeEntry({ initialCode = "", onBack, onSubmit, onScanInste
  * @param {{
  *   files: Array<{ name: string, size: number, type: string, id?: string }>,
  *   totalBytes: number,
+ *   peer?: object|null,
  *   onAccept: () => void,
  *   onReject: () => void
  * }} options
  */
-export function mountIncomingTransfer({ files, totalBytes, onAccept, onReject }) {
+export function mountIncomingTransfer({ files, totalBytes, peer = null, onAccept, onReject }) {
   let busy = false;
 
   const listMarkup = files.map((file) => fileRowMarkup(file, { id: file.id })).join("");
@@ -281,9 +285,9 @@ export function mountIncomingTransfer({ files, totalBytes, onAccept, onReject })
 
         <div class="card consent">
           <div class="consent__head">
-            <span class="consent__avatar"><i data-icon="smartphone" data-size="20"></i></span>
+            ${deviceAvatarMarkup(peer?.avatar, { size: "lg" })}
             <div>
-              <div class="consent__title">Incoming transfer</div>
+              <div class="consent__title" data-peer-name></div>
               <div class="consent__sub" data-sub></div>
             </div>
           </div>
@@ -305,7 +309,7 @@ export function mountIncomingTransfer({ files, totalBytes, onAccept, onReject })
           }
 
           <div class="btn-group btn-group--end">
-            <button type="button" class="btn btn--secondary" data-reject>Reject</button>
+            <button type="button" class="btn btn--secondary" data-reject>Decline</button>
             <button type="button" class="btn btn--blue btn--lg" data-accept>
               <i data-icon="download" data-size="17"></i> Accept transfer
             </button>
@@ -321,7 +325,14 @@ export function mountIncomingTransfer({ files, totalBytes, onAccept, onReject })
 
   qs(element, "[data-count]").textContent = formatFileCount(files.length);
   qs(element, "[data-total-size]").textContent = formatBytes(totalBytes);
-  qs(element, "[data-sub]").textContent = `${formatFileCount(files.length)} · ${formatBytes(totalBytes)}`;
+  const peerName = String(peer?.name ?? "").trim();
+  const peerDetail = formatDeviceSubtitle(peer ?? {});
+  qs(element, "[data-peer-name]").textContent = peerName
+    ? `Incoming files from ${peerName}`
+    : "Incoming transfer";
+  qs(element, "[data-sub]").textContent = [peerDetail, formatFileCount(files.length), formatBytes(totalBytes)]
+    .filter(Boolean)
+    .join(" · ");
   iconsIn(element);
 
   const acceptBtn = qs(element, "[data-accept]");

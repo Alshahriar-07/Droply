@@ -25,11 +25,17 @@ const READ_BLOCK_MIN = 64 * 1024;
 
 export class FileSender extends EventTarget {
   /**
-   * @param {{ transport: import("./data-channel.js").DataChannelTransport, files: File[], chunkSize?: number }} options
+   * @param {{
+   *   transport: import("./data-channel.js").DataChannelTransport,
+   *   files: File[],
+   *   chunkSize?: number,
+   *   identity?: object|null
+   * }} options
    */
-  constructor({ transport, files, chunkSize = config.chunkSize }) {
+  constructor({ transport, files, chunkSize = config.chunkSize, identity = null }) {
     super();
     this.transport = transport;
+    this.identity = identity;
     this.chunkSize = Math.round(clamp(chunkSize, 16 * 1024, 64 * 1024));
     this.readBlockSize = Math.max(this.chunkSize * 8, READ_BLOCK_MIN);
 
@@ -67,6 +73,7 @@ export class FileSender extends EventTarget {
       })),
       totalBytes: this.totalBytes,
       chunkSize: this.chunkSize,
+      peer: this.identity?.profile ?? null,
     };
   }
 
@@ -209,6 +216,9 @@ export class FileSender extends EventTarget {
           totalBytes: this.totalBytes,
           activeIndex: this.activeIndex,
           speedMeter: this.speed,
+          // The final emit happens after COMPLETE was queued, so the UI never
+          // sees a finished transfer reported as still in progress.
+          complete: this.finished,
         }),
       }),
     );

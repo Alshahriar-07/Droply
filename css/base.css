@@ -20,7 +20,7 @@ body {
   min-height: 100dvh;
   font-family: var(--font-sans);
   font-size: var(--fs-base);
-  line-height: 1.6;
+  line-height: 1.58;
   color: var(--text);
   background: var(--paper);
   -webkit-font-smoothing: antialiased;
@@ -36,7 +36,7 @@ h3,
 h4 {
   margin: 0;
   font-weight: var(--w-semibold);
-  line-height: 1.15;
+  line-height: 1.16;
   letter-spacing: var(--tracking-tight);
   color: var(--text);
   text-wrap: balance;
@@ -85,6 +85,15 @@ a:hover {
   text-decoration: underline;
 }
 
+strong {
+  font-weight: var(--w-semibold);
+  color: var(--text);
+}
+
+hr {
+  border: 0;
+}
+
 ::selection {
   background: rgba(18, 103, 213, 0.16);
 }
@@ -97,6 +106,11 @@ a:hover {
 
 [hidden] {
   display: none !important;
+}
+
+/* Native dialog reset: components own their own surface. */
+dialog {
+  color: var(--text);
 }
 
 /* --------------------------------------------------------------------------
@@ -179,15 +193,18 @@ a:hover {
   text-decoration: none;
 }
 
-/* Visible, consistent focus treatment for every interactive element. */
+/* One consistent focus treatment for every interactive element. */
 .btn:focus-visible,
 .action-card:focus-visible,
+.home-link:focus-visible,
+.device-card:focus-visible,
+.choice:focus-visible,
 .icon-btn:focus-visible,
 .copy-btn:focus-visible,
-.choice:focus-visible,
 .code-slots__input:focus-visible,
 .dropzone:focus-visible,
 .site-nav__link:focus-visible,
+.tabbar__item:focus-visible,
 .site-footer a:focus-visible,
 .site-footer button:focus-visible,
 a:focus-visible {
